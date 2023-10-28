@@ -1,9 +1,9 @@
 pragma solidity 0.8.19;
 
-import 'forge-std/Test.sol';
-import {NFTSplitter} from './../../src/examples/NFTSplitter.sol';
-import {GasliteSplitter} from './../../src/GasliteSplitter.sol';
-import {Token} from '../utils/Token.sol';
+import "forge-std/Test.sol";
+import {NFTSplitter} from "./../../src/examples/NFTSplitter.sol";
+import {GasliteSplitter} from "./../../src/GasliteSplitter.sol";
+import {Token} from "../utils/Token.sol";
 
 contract NFTSplitterTest is Test {
     NFTSplitter nft;

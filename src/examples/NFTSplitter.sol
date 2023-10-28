@@ -1,7 +1,7 @@
 pragma solidity 0.8.19;
 
-import '@solady/tokens/ERC721.sol';
-import '@solady/utils/LibString.sol';
+import "@solady/tokens/ERC721.sol";
+import "@solady/utils/LibString.sol";
 
 interface GasliteSplitter {
     function release() external;

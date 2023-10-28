@@ -40,12 +40,12 @@ contract GasliteSplitter {
     // the addresses to split to
     address[] public recipients;
     /**
-      the shares for each address  
-      Example:
-        [5, 5, 5, 5] -> Each address gets 25% (20 shares total)
-        [10, 20, 30, 40] -> Address 1 gets 10%, Address 2 gets 20%,
-                            Address 3 gets 30%, Address 4 gets 40%
-                            (100 shares total)
+     * the shares for each address  
+     *   Example:
+     *     [5, 5, 5, 5] -> Each address gets 25% (20 shares total)
+     *     [10, 20, 30, 40] -> Address 1 gets 10%, Address 2 gets 20%,
+     *                         Address 3 gets 30%, Address 4 gets 40%
+     *                         (100 shares total)
      */
     uint256[] public shares;
     // the total number of shares (calculated in constructor)
@@ -58,6 +58,7 @@ contract GasliteSplitter {
     // event emitted when a split is released
     event SplitReleased(address[] recipients, uint256[] amounts);
     // event emitted when the balance is zero
+
     error BalanceZero();
 
     /// @notice Split payments to a list of addresses
@@ -105,7 +106,7 @@ contract GasliteSplitter {
         uint256 size = memShares.length;
         // create new array to store amounts that are calculated off shares
         uint256[] memory amounts = new uint256[](size);
-        
+
         // cache totalShares
         uint256 total = totalShares;
         // cache balance of this contract
@@ -156,7 +157,7 @@ contract GasliteSplitter {
         uint256 size = memShares.length;
         // create new array to store amounts that are calculated off shares
         uint256[] memory amounts = new uint256[](size);
-        
+
         // cache totalShares
         uint256 total = totalShares;
         // cache balance of _token in this contract
@@ -215,7 +216,7 @@ contract GasliteSplitter {
         assembly {
             // cache size of _addresses
             let size := mload(_addresses)
-            
+
             // get pointer, offset, and end
             let addrPtr := add(_addresses, 0x20)
             let amtOffset := sub(_amounts, _addresses)
@@ -263,7 +264,7 @@ contract GasliteSplitter {
         // emit a bulk event of addresses and amounts
         emit SplitReleased(_addresses, _amounts);
     }
-    
+
     // receive function to receive ETH
     receive() external payable {
         // emit event when contract receives ETH

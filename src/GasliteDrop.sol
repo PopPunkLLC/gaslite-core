@@ -28,28 +28,23 @@ g:::::gg   gg:::::g
        gggggg                                                                                                      
  */
 
-
 /// @title GasliteDrop
 /// @notice Turbo gas optimized bulk transfers of ERC20, ERC721, and ETH
 /// @author Harrison (@PopPunkOnChain)
 /// @author Gaslite (@GasliteGG)
 /// @author Pop Punk LLC (@PopPunkLLC)
 contract GasliteDrop {
-
     /// @notice Airdrop ERC721 tokens to a list of addresses
     /// @param _nft The address of the ERC721 contract
     /// @param _addresses The addresses to airdrop to
     /// @param _tokenIds The tokenIds to airdrop
-    function airdropERC721(
-        address _nft, 
-        address[] calldata _addresses, 
-        uint256[] calldata _tokenIds
-    ) external payable {
+    function airdropERC721(address _nft, address[] calldata _addresses, uint256[] calldata _tokenIds)
+        external
+        payable
+    {
         assembly {
             // Check that the number of addresses matches the number of tokenIds
-            if iszero(eq(_tokenIds.length, _addresses.length)) {
-                revert(0, 0)
-            }
+            if iszero(eq(_tokenIds.length, _addresses.length)) { revert(0, 0) }
             // transferFrom(address from, address to, uint256 tokenId)
             mstore(0x00, hex"23b872dd")
             // from address
@@ -67,9 +62,7 @@ contract GasliteDrop {
                 // tokenId
                 mstore(0x44, calldataload(sub(addressOffset, diff)))
                 // transfer the token
-                if iszero(call(gas(), _nft, 0, 0x00, 0x64, 0, 0)){
-                    revert(0, 0)
-                }
+                if iszero(call(gas(), _nft, 0, 0x00, 0x64, 0, 0)) { revert(0, 0) }
                 // increment the address offset
                 addressOffset := add(addressOffset, 0x20)
                 // if addressOffset >= end, break
@@ -91,9 +84,7 @@ contract GasliteDrop {
     ) external payable {
         assembly {
             // Check that the number of addresses matches the number of amounts
-            if iszero(eq(_amounts.length, _addresses.length)) {
-                revert(0, 0)
-            }
+            if iszero(eq(_amounts.length, _addresses.length)) { revert(0, 0) }
 
             // transferFrom(address from, address to, uint256 amount)
             mstore(0x00, hex"23b872dd")
@@ -105,9 +96,7 @@ contract GasliteDrop {
             mstore(0x44, _totalAmount)
 
             // transfer total amount to this contract
-            if iszero(call(gas(), _token, 0, 0x00, 0x64, 0, 0)){
-                revert(0, 0)
-            }
+            if iszero(call(gas(), _token, 0, 0x00, 0x64, 0, 0)) { revert(0, 0) }
 
             // transfer(address to, uint256 value)
             mstore(0x00, hex"a9059cbb")
@@ -124,9 +113,7 @@ contract GasliteDrop {
                 // amount
                 mstore(0x24, calldataload(sub(addressOffset, diff)))
                 // transfer the tokens
-                if iszero(call(gas(), _token, 0, 0x00, 0x64, 0, 0)){
-                    revert(0, 0)
-                }
+                if iszero(call(gas(), _token, 0, 0x00, 0x64, 0, 0)) { revert(0, 0) }
                 // increment the address offset
                 addressOffset := add(addressOffset, 0x20)
                 // if addressOffset >= end, break
@@ -138,15 +125,10 @@ contract GasliteDrop {
     /// @notice Airdrop ETH to a list of addresses
     /// @param _addresses The addresses to airdrop to
     /// @param _amounts The amounts to airdrop
-    function airdropETH(
-        address[] calldata _addresses,
-        uint256[] calldata _amounts
-    ) external payable {
+    function airdropETH(address[] calldata _addresses, uint256[] calldata _amounts) external payable {
         assembly {
             // Check that the number of addresses matches the number of amounts
-            if iszero(eq(_amounts.length, _addresses.length)) {
-                revert(0, 0)
-            }
+            if iszero(eq(_amounts.length, _addresses.length)) { revert(0, 0) }
 
             // iterator
             let i := _addresses.offset
@@ -158,9 +140,9 @@ contract GasliteDrop {
             // Loop through the addresses
             for {} 1 {} {
                 // transfer the ETH
-                if iszero(
-                    call(gas(), calldataload(i), calldataload(add(i, diff)), 0x00, 0x00, 0x00, 0x00)
-                ) { revert(0x00, 0x00) }
+                if iszero(call(gas(), calldataload(i), calldataload(add(i, diff)), 0x00, 0x00, 0x00, 0x00)) {
+                    revert(0x00, 0x00)
+                }
                 // increment the iterator
                 i := add(i, 0x20)
                 // if i >= end, break

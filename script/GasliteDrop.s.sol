@@ -1,11 +1,10 @@
 pragma solidity 0.8.19;
 
-import './../src/GasliteDrop.sol';
-import 'forge-std/Script.sol';
-import {console} from 'forge-std/console.sol';
+import "./../src/GasliteDrop.sol";
+import "forge-std/Script.sol";
+import {console} from "forge-std/console.sol";
 
 contract GasliteDropScript is Script {
-
     function run() external {
         console.log("Deploying GasliteDrop...");
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
@@ -26,16 +25,11 @@ contract GasliteDropScript is Script {
      *
      * @dev this function is used to deploy a contract using the CREATE2 opcode
      */
-    function deploy(
-        bytes memory _bytecode,
-        bytes32 _salt
-    ) internal returns (address) {
+    function deploy(bytes memory _bytecode, bytes32 _salt) internal returns (address) {
         address addr;
         assembly {
             addr := create2(0, add(_bytecode, 0x20), mload(_bytecode), _salt)
-            if iszero(extcodesize(addr)) {
-                revert(0, 0)
-            }
+            if iszero(extcodesize(addr)) { revert(0, 0) }
         }
         console.log("Deployed contract at address: ", addr);
         return addr;

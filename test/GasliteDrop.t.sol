@@ -1,10 +1,9 @@
 pragma solidity 0.8.19;
 
-
-import {GasliteDrop} from './../src/GasliteDrop.sol';
-import {NFT} from './../test/utils/NFT.sol';
-import {Token} from './../test/utils/Token.sol';
-import 'forge-std/Test.sol';
+import {GasliteDrop} from "./../src/GasliteDrop.sol";
+import {NFT} from "./../test/utils/NFT.sol";
+import {Token} from "./../test/utils/Token.sol";
+import "forge-std/Test.sol";
 
 contract GasliteDropTest is Test {
     GasliteDrop gasliteDrop;
@@ -31,7 +30,7 @@ contract GasliteDropTest is Test {
             tokenIds[i] = i;
             recipients[i] = vm.addr(2);
         }
-        
+
         nft.setApprovalForAll(address(gasliteDrop), true);
         gasliteDrop.airdropERC721(address(nft), recipients, tokenIds);
 
@@ -41,7 +40,7 @@ contract GasliteDropTest is Test {
     function test_airdropERC20() public {
         vm.startPrank(user);
         token.approve(address(gasliteDrop), quantity);
-        
+
         address[] memory recipients = new address[](quantity);
         uint256[] memory amounts = new uint256[](quantity);
         for (uint256 i = 0; i < quantity; i++) {
@@ -60,11 +59,10 @@ contract GasliteDropTest is Test {
         uint256[] memory amounts = new uint256[](quantity);
         for (uint256 i = 0; i < quantity; i++) {
             recipients[i] = vm.addr(2);
-            amounts[i] = .001 ether;
+            amounts[i] = 0.001 ether;
         }
 
         gasliteDrop.airdropETH{value: value}(recipients, amounts);
         vm.stopPrank();
     }
-
 }

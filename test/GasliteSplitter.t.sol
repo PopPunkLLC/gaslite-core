@@ -1,8 +1,8 @@
 pragma solidity 0.8.19;
 
-import 'forge-std/Test.sol';
-import {GasliteSplitter} from './../src/GasliteSplitter.sol';
-import {Token} from './../test/utils/Token.sol';
+import "forge-std/Test.sol";
+import {GasliteSplitter} from "./../src/GasliteSplitter.sol";
+import {Token} from "./../test/utils/Token.sol";
 
 contract GasliteSplitterTest is Test {
     GasliteSplitter splitter;
@@ -16,7 +16,7 @@ contract GasliteSplitterTest is Test {
 
     function setUp() public {
         for (uint256 i = 0; i < SIZE; i++) {
-            recipients[i] = vm.addr(i+1);
+            recipients[i] = vm.addr(i + 1);
             shares[i] = 5;
         }
         splitter = new GasliteSplitter(recipients, shares, false);
@@ -144,5 +144,4 @@ contract GasliteSplitterTest is Test {
         vm.expectRevert(GasliteSplitter.BalanceZero.selector);
         splitter.release(address(token));
     }
-
 }
