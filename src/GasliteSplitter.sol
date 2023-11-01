@@ -31,34 +31,35 @@ g:::::gg   gg:::::g
 /// @title GasliteSplitter
 /// @notice Turbo gas optimized payment splitter
 /// @author Harrison (@PopPunkOnChain)
+/// @author Thomas (@0xjustadev)
 /// @author Gaslite (@GasliteGG)
 interface IERC20 {
     function balanceOf(address account) external view returns (uint256);
 }
 
 contract GasliteSplitter {
-    // the addresses to split to
-    address[] public recipients;
     /**
-     * the shares for each address  
+     * packed data for split receivers
+     * address: bytes 0-19
+     * share: bytes 20-31
      *   Example:
      *     [5, 5, 5, 5] -> Each address gets 25% (20 shares total)
      *     [10, 20, 30, 40] -> Address 1 gets 10%, Address 2 gets 20%,
      *                         Address 3 gets 30%, Address 4 gets 40%
      *                         (100 shares total)
      */
-    uint256[] public shares;
+    bytes32[] private packedSplits;
     // the total number of shares (calculated in constructor)
     uint256 public immutable totalShares;
     // flag to optionally give 0.1% to caller of release()
-    bool public releaseRoyalty;
+    bool public immutable releaseRoyalty;
 
     // event emitted when a payment is received (OpenZeppelin did this so I guess I have to do it too)
     event PaymentReceived(address from, uint256 amount);
     // event emitted when a split is released
+    bytes32 private constant SPLIT_RELEASED_EVENT_SIGNATURE = 0xa81a1a3f8e5470cb88006c7539ae66f8750a18c49bf0d312ef679e24bac0f014;
     event SplitReleased(address[] recipients, uint256[] amounts);
-    // event emitted when the balance is zero
-
+    // error when the balance is zero
     error BalanceZero();
 
     /// @notice Split payments to a list of addresses
@@ -72,40 +73,69 @@ contract GasliteSplitter {
             // cache size of _recipients
             let size := mload(_recipients)
             // revert if _recipients is empty
-            if iszero(size) { revert(0, 0) }
-            // revert if _recipients and _shares are different sizes
-            if iszero(eq(size, mload(_shares))) { revert(0, 0) }
-            // set releaseRoyalty flag if it's true
-            if _releaseRoyalty { sstore(releaseRoyalty.slot, 1) }
+            //     or if _recipients and _shares are different sizes
+            if or(iszero(size), iszero(eq(size, mload(_shares)))) { revert(0, 0) }
             // loop iterator
-            let i := add(_shares, 0x20)
+            let sharesOffset := add(_shares, 0x20)
+            let recipientsOffset := sub(_shares, _recipients)
+
             // end of array
-            let end := add(i, mul(size, 0x20))
+            let end := add(sharesOffset, mul(size, 0x20))
+
+            // store array size to packedSplits slot
+            sstore(packedSplits.slot, size)
+            // hash packedSlits slot to get first storage slot for array data
+            mstore(0x00, packedSplits.slot)
+            let splitsSlot := keccak256(0x00, 0x20)
 
             for {} 1 {} {
+                // load share and recipient
+                let share := mload(sharesOffset)
+                let addr := mload(sub(sharesOffset, recipientsOffset))
                 // add each share to accumulatedShares
-                accumulatedShares := add(accumulatedShares, mload(i))
+                accumulatedShares := add(accumulatedShares, share)
+                // revert if share is zero or share > 2^96-1
+                if or(iszero(share), gt(share, 0xFFFFFFFFFFFFFFFFFFFFFFFF)) {
+                    revert(0, 0)
+                }
+                // store packed data
+                sstore(splitsSlot, or(share, shl(96, addr)))
                 // increment iterator
-                i := add(i, 0x20)
+                sharesOffset := add(sharesOffset, 0x20)
                 // break at end of array
-                if eq(end, i) { break }
+                if eq(end, sharesOffset) { break }
+                // increment split slot after end of array check
+                splitsSlot := add(splitsSlot, 0x01)
             }
         }
-        // set recipients, shares, totalShares
-        recipients = _recipients;
-        shares = _shares;
-        // totalShares is set outside of assembly block because it's immutable to save gas on SLOAD
+        // release royalty and totalShares are set outside of assembly block
+        // because they're immutable to save gas on SLOAD
+        releaseRoyalty = _releaseRoyalty;
         totalShares = accumulatedShares;
     }
 
     /// @notice Release all eth (address(this).balance) to the recipients
     function release() external {
-        // cache shares array into memory
-        uint256[] memory memShares = shares;
-        // cache size of shares array
-        uint256 size = memShares.length;
+        // cache releaseRoyalty into memory
+        bool memReleaseRoyalty = releaseRoyalty;
+        // create new array to store addresses
+        address[] memory memAddresses;
         // create new array to store amounts that are calculated off shares
-        uint256[] memory amounts = new uint256[](size);
+        uint256[] memory amounts;
+        // initiate the arrays in memory, update free memory pointer
+        assembly {
+            let size := sload(packedSplits.slot)
+            let length := add(0x20, mul(0x20, size))
+            memAddresses := add(0x40, mload(0x40))
+            amounts := add(memAddresses, length)
+            mstore(0x40, add(amounts, length))
+            mstore(memAddresses, size)
+            mstore(amounts, size)
+            // abi encoding value for addresses position
+            mstore(sub(memAddresses, 0x40), 0x40) 
+            // abi encoding value for amounts position
+            mstore(sub(memAddresses, 0x20), add(0x40, length)) 
+        }
 
         // cache totalShares
         uint256 total = totalShares;
@@ -117,7 +147,7 @@ contract GasliteSplitter {
 
         assembly {
             // if releaseRoyalty == true
-            if sload(releaseRoyalty.slot) {
+            if memReleaseRoyalty {
                 // calculate 0.1% of balance as royalty
                 let royalty := div(bal, 1000)
                 // subtract royalty from balance
@@ -126,37 +156,62 @@ contract GasliteSplitter {
                 if iszero(call(gas(), caller(), royalty, 0, 0, 0, 0)) { revert(0, 0) }
             }
 
-            // get pointer, offset, and end
-            let memSharesPtr := add(memShares, 0x20)
-            let amountsOffset := sub(amounts, memShares)
-            let end := add(memSharesPtr, mul(size, 0x20))
+            // get first packed slot, memory pointer, offsets, and end
+            mstore(0x00, packedSplits.slot)
+            let splitSlot := keccak256(0x00, 0x20)
+            let amountsOffset := add(amounts, 0x20)
+            let addrOffset := sub(amounts, memAddresses)
+            let end := add(amountsOffset, mul(mload(amounts), 0x20))
 
             for {} 1 {} {
-                // calculate amount for each address
-                let share := mload(memSharesPtr)
-                let amount := div(mul(bal, share), total)
+                // load packed split data
+                let split := sload(splitSlot)
+                // calculate amount
+                let amount := div(mul(bal, and(split, 0xFFFFFFFFFFFFFFFFFFFFFFFF)), total)
+                // retrieve address from packed data
+                let addr := shr(96, split)
+                // Store the amount and address at the correct offsets
+                mstore(amountsOffset, amount)
+                mstore(sub(amountsOffset, addrOffset), addr)
+                // send ETH, revert if call fails
+                if iszero(call(gas(), addr, amount, 0, 0, 0, 0)) { revert(0, 0) }
 
-                // Store the amount at the correct offset
-                mstore(add(memSharesPtr, amountsOffset), amount)
                 // increment pointer
-                memSharesPtr := add(memSharesPtr, 0x20)
+                amountsOffset := add(amountsOffset, 0x20)
                 // break at end of array
-                if iszero(lt(memSharesPtr, end)) { break }
+                if iszero(lt(amountsOffset, end)) { break }
+                // increment splitSlot after end of array check
+                splitSlot := add(splitSlot, 0x01)
             }
+            // emit a bulk event of addresses and amounts
+            log1(sub(memAddresses, 0x40), add(0x40, mul(addrOffset, 0x02)), SPLIT_RELEASED_EVENT_SIGNATURE)
+            stop()
         }
-        // call split() with recipients, amounts, and address(0) (ETH)
-        split(recipients, amounts, address(0));
     }
 
     /// @notice Release all of given token (IERC20(_token).balanceOf(address(this))) to the recipients
     /// @param _token The address of the token to release
     function release(address _token) external {
-        // cache shares array into memory
-        uint256[] memory memShares = shares;
-        // cache size of shares array
-        uint256 size = memShares.length;
+        // cache releaseRoyalty into memory
+        bool memReleaseRoyalty = releaseRoyalty;
+        // create new array to store addresses
+        address[] memory memAddresses;
         // create new array to store amounts that are calculated off shares
-        uint256[] memory amounts = new uint256[](size);
+        uint256[] memory amounts;
+        // initiate the arrays in memory, update free memory pointer
+        assembly {
+            let size := sload(packedSplits.slot)
+            let length := add(0x20, mul(0x20, size))
+            memAddresses := add(0x40, mload(0x40))
+            amounts := add(memAddresses, length)
+            mstore(0x40, add(amounts, length))
+            mstore(memAddresses, size)
+            mstore(amounts, size)
+            // abi encoding value for addresses position
+            mstore(sub(memAddresses, 0x40), 0x40) 
+            // abi encoding value for amounts position
+            mstore(sub(memAddresses, 0x20), add(0x40, length)) 
+        }
 
         // cache totalShares
         uint256 total = totalShares;
@@ -168,7 +223,7 @@ contract GasliteSplitter {
 
         assembly {
             // if releaseRoyalty == true
-            if sload(releaseRoyalty.slot) {
+            if memReleaseRoyalty {
                 // calculate 0.1% of balance as royalty
                 let royalty := div(bal, 1000)
                 // subtract royalty from balance
@@ -182,87 +237,106 @@ contract GasliteSplitter {
                 // transfer royalty to caller
                 if iszero(call(gas(), _token, 0, 0x00, 0x44, 0, 0)) { revert(0, 0) }
             }
-            // restore free memory pointer
-            mstore(0x24, 0)
-            // get pointer, offset, and end
-            let memSharesPtr := add(memShares, 0x20)
-            let amountsOffset := sub(amounts, memShares)
-            let end := add(memSharesPtr, mul(size, 0x20))
+
+            // get first packed slot, memory pointer, offsets, and end
+            mstore(0x00, packedSplits.slot)
+            let splitSlot := keccak256(0x00, 0x20)
+            let amountsOffset := add(amounts, 0x20)
+            let addrOffset := sub(amounts, memAddresses)
+            let end := add(amountsOffset, mul(mload(amounts), 0x20))
+
+            // transfer(address to, uint256 value)
+            mstore(0x00, hex"a9059cbb")
 
             for {} 1 {} {
-                // calculate amount for each address
-                let share := mload(memSharesPtr)
-                let amount := div(mul(bal, share), total)
+                // load packed split data
+                let split := sload(splitSlot)
+                // calculate amount
+                let amount := div(mul(bal, and(split, 0xFFFFFFFFFFFFFFFFFFFFFFFF)), total)
+                // retrieve address from packed data
+                let addr := shr(96, split)
+                // Store the amount and address at the correct offsets
+                mstore(amountsOffset, amount)
+                mstore(sub(amountsOffset, addrOffset), addr)
+                // to address
+                mstore(0x04, addr)
+                // value
+                mstore(0x24, amount)
+                // transfer the tokens, revert if call fails
+                if iszero(call(gas(), _token, 0, 0x00, 0x44, 0, 0)) { revert(0, 0) }
 
-                // Store the amount at the correct offset
-                mstore(add(memSharesPtr, amountsOffset), amount)
                 // increment pointer
-                memSharesPtr := add(memSharesPtr, 0x20)
+                amountsOffset := add(amountsOffset, 0x20)
                 // break at end of array
-                if iszero(lt(memSharesPtr, end)) { break }
+                if iszero(lt(amountsOffset, end)) { break }
+                // increment splitSlot after end of array check
+                splitSlot := add(splitSlot, 0x01)
             }
+            mstore(0x24, 0x00)
+            // emit a bulk event of addresses and amounts
+            log1(sub(memAddresses, 0x40), add(0x40, mul(addrOffset, 0x02)), SPLIT_RELEASED_EVENT_SIGNATURE)
+            stop()
         }
-        // call split() with recipients, amounts, and _token
-        split(recipients, amounts, _token);
     }
 
-    /// @notice Split payments to a list of addresses
-    /// @param _addresses The addresses to split to
-    /// @param _amounts The amounts to send to each address
-    /// @param _token The address of the token to send (address(0) for ETH)
-    function split(address[] memory _addresses, uint256[] memory _amounts, address _token) internal {
-        // cache boolean to determine if we're splitting ETH or a token
-        bool isETH = _token == address(0);
+    /// @notice Retrieve the address for a split recipient at given `index`
+    /// @param index The index of the split recipient
+    function recipients(uint256 index) external view returns(address recipient) {
         assembly {
-            // cache size of _addresses
-            let size := mload(_addresses)
-
-            // get pointer, offset, and end
-            let addrPtr := add(_addresses, 0x20)
-            let amtOffset := sub(_amounts, _addresses)
-            let end := add(addrPtr, mul(size, 0x20))
-
-            // switch on isETH (albeit ugly, 2 loops saves runtime gas)
-            switch isETH
-            // if isETH == true
-            case 1 {
-                for {} 1 {} {
-                    // get address and amount
-                    let addressOffset := mload(addrPtr)
-                    let amount := mload(add(amtOffset, addrPtr))
-                    // transfer amount to address
-                    if iszero(call(gas(), addressOffset, amount, 0, 0, 0, 0)) { revert(0, 0) }
-                    // increment pointer
-                    addrPtr := add(addrPtr, 0x20)
-                    // break at end of array
-                    if iszero(lt(addrPtr, end)) { break }
-                }
+            if iszero(lt(index, sload(packedSplits.slot))) {
+                revert(0, 0)
             }
-            // if isETH == false
-            case 0 {
-                for {} 1 {} {
-                    // get address and amount
-                    let addressOffset := mload(addrPtr)
-                    let amount := mload(add(amtOffset, addrPtr))
-                    // transfer(address to, uint256 value)
-                    mstore(0x00, hex"a9059cbb")
-                    // to address
-                    mstore(0x04, addressOffset)
-                    // value
-                    mstore(0x24, amount)
-                    // transfer the tokens
-                    if iszero(call(gas(), _token, 0, 0x00, 0x44, 0, 0)) { revert(0, 0) }
-                    // increment pointer
-                    addrPtr := add(addrPtr, 0x20)
-                    // break at end of array
-                    if iszero(lt(addrPtr, end)) { break }
-                }
-            }
-            // restore free memory pointer
-            mstore(0x24, 0)
+            mstore(0x00, packedSplits.slot)
+            recipient := shr(96, sload(add(index, keccak256(0x00, 0x20))))
         }
-        // emit a bulk event of addresses and amounts
-        emit SplitReleased(_addresses, _amounts);
+    }
+
+    /// @notice Retrieve an array of split recipients
+    function recipients() external view returns(address[] memory _recipients) {
+        _recipients = new address[](packedSplits.length);
+        assembly {
+            mstore(0x00, packedSplits.slot)
+            let splitSlot := keccak256(0x00, 0x20)
+            let ptr := add(0x20, _recipients)
+            let end := add(0x20, mul(0x20, mload(_recipients)))
+
+            for {} 1 {} {
+                mstore(ptr, shr(96, sload(splitSlot)))
+                ptr := add(0x20, ptr)
+                if iszero(lt(ptr, end)) { break }
+                splitSlot := add(0x01, splitSlot)
+            }
+        }
+    }
+
+    /// @notice Retrieve the shares for a split recipient at given `index`
+    /// @param index The index of the split shares
+    function shares(uint256 index) external view returns(uint256 share) {
+        assembly {
+            if iszero(lt(index, sload(packedSplits.slot))) {
+                revert(0, 0)
+            }
+            mstore(0x00, packedSplits.slot)
+            share := and(0xFFFFFFFFFFFFFFFFFFFFFFFF, sload(add(index, keccak256(0x00, 0x20))))
+        }
+    }
+
+    /// @notice Retrieve an array of split recipients shares
+    function shares() external view returns(uint256[] memory _shares) {
+        _shares = new uint256[](packedSplits.length);
+        assembly {
+            mstore(0x00, packedSplits.slot)
+            let splitSlot := keccak256(0x00, 0x20)
+            let ptr := add(0x20, _shares)
+            let end := add(0x20, mul(0x20, mload(_shares)))
+
+            for {} 1 {} {
+                mstore(ptr, and(0xFFFFFFFFFFFFFFFFFFFFFFFF, sload(splitSlot)))
+                ptr := add(0x20, ptr)
+                if iszero(lt(ptr, end)) { break }
+                splitSlot := add(0x01, splitSlot)
+            }
+        }
     }
 
     // receive function to receive ETH
