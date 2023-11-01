@@ -57,9 +57,13 @@ contract GasliteSplitter {
     // event emitted when a payment is received (OpenZeppelin did this so I guess I have to do it too)
     event PaymentReceived(address from, uint256 amount);
     // event emitted when a split is released
-    bytes32 private constant SPLIT_RELEASED_EVENT_SIGNATURE = 0xa81a1a3f8e5470cb88006c7539ae66f8750a18c49bf0d312ef679e24bac0f014;
+
+    bytes32 private constant SPLIT_RELEASED_EVENT_SIGNATURE =
+        0xa81a1a3f8e5470cb88006c7539ae66f8750a18c49bf0d312ef679e24bac0f014;
+
     event SplitReleased(address[] recipients, uint256[] amounts);
     // error when the balance is zero
+
     error BalanceZero();
 
     /// @notice Split payments to a list of addresses
@@ -95,9 +99,7 @@ contract GasliteSplitter {
                 // add each share to accumulatedShares
                 accumulatedShares := add(accumulatedShares, share)
                 // revert if share is zero or share > 2^96-1
-                if or(iszero(share), gt(share, 0xFFFFFFFFFFFFFFFFFFFFFFFF)) {
-                    revert(0, 0)
-                }
+                if or(iszero(share), gt(share, 0xFFFFFFFFFFFFFFFFFFFFFFFF)) { revert(0, 0) }
                 // store packed data
                 sstore(splitsSlot, or(share, shl(96, addr)))
                 // increment iterator
@@ -132,9 +134,9 @@ contract GasliteSplitter {
             mstore(memAddresses, size)
             mstore(amounts, size)
             // abi encoding value for addresses position
-            mstore(sub(memAddresses, 0x40), 0x40) 
+            mstore(sub(memAddresses, 0x40), 0x40)
             // abi encoding value for amounts position
-            mstore(sub(memAddresses, 0x20), add(0x40, length)) 
+            mstore(sub(memAddresses, 0x20), add(0x40, length))
         }
 
         // cache totalShares
@@ -208,9 +210,9 @@ contract GasliteSplitter {
             mstore(memAddresses, size)
             mstore(amounts, size)
             // abi encoding value for addresses position
-            mstore(sub(memAddresses, 0x40), 0x40) 
+            mstore(sub(memAddresses, 0x40), 0x40)
             // abi encoding value for amounts position
-            mstore(sub(memAddresses, 0x20), add(0x40, length)) 
+            mstore(sub(memAddresses, 0x20), add(0x40, length))
         }
 
         // cache totalShares
@@ -281,18 +283,16 @@ contract GasliteSplitter {
 
     /// @notice Retrieve the address for a split recipient at given `index`
     /// @param index The index of the split recipient
-    function recipients(uint256 index) external view returns(address recipient) {
+    function recipients(uint256 index) external view returns (address recipient) {
         assembly {
-            if iszero(lt(index, sload(packedSplits.slot))) {
-                revert(0, 0)
-            }
+            if iszero(lt(index, sload(packedSplits.slot))) { revert(0, 0) }
             mstore(0x00, packedSplits.slot)
             recipient := shr(96, sload(add(index, keccak256(0x00, 0x20))))
         }
     }
 
     /// @notice Retrieve an array of split recipients
-    function recipients() external view returns(address[] memory _recipients) {
+    function recipients() external view returns (address[] memory _recipients) {
         _recipients = new address[](packedSplits.length);
         assembly {
             mstore(0x00, packedSplits.slot)
@@ -311,18 +311,16 @@ contract GasliteSplitter {
 
     /// @notice Retrieve the shares for a split recipient at given `index`
     /// @param index The index of the split shares
-    function shares(uint256 index) external view returns(uint256 share) {
+    function shares(uint256 index) external view returns (uint256 share) {
         assembly {
-            if iszero(lt(index, sload(packedSplits.slot))) {
-                revert(0, 0)
-            }
+            if iszero(lt(index, sload(packedSplits.slot))) { revert(0, 0) }
             mstore(0x00, packedSplits.slot)
             share := and(0xFFFFFFFFFFFFFFFFFFFFFFFF, sload(add(index, keccak256(0x00, 0x20))))
         }
     }
 
     /// @notice Retrieve an array of split recipients shares
-    function shares() external view returns(uint256[] memory _shares) {
+    function shares() external view returns (uint256[] memory _shares) {
         _shares = new uint256[](packedSplits.length);
         assembly {
             mstore(0x00, packedSplits.slot)
