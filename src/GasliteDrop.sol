@@ -85,23 +85,24 @@ contract GasliteDrop {
         uint256 _totalAmount
     ) external payable {
         assembly {
-            // Check that the number of addresses matches the number of amounts
-            if iszero(eq(_amounts.length, _addresses.length)) { revert(0, 0) }
+            // Minimize branches by bundling error checks, makes successful case cheaper and failure
+            // case much more expensive.
+            let noError := eq(_amounts.length, _addresses.length)
 
-            // transferFrom(address from, address to, uint256 amount)
-            mstore(0x00, hex"23b872dd")
+            // Packed `transfer(address to, uint256 amount)` [0xa9059cbb]
+            // and `transferFrom(address from, address to, uint256 amount)` [0x23b872dd], to avoid
+            // extra mstore later. Right shifted to minimize bytecode size (no added runtime gas
+            // used).
+            mstore(0x00, 0xa9059cbb23b872dd)
             // from address
-            mstore(0x04, caller())
+            mstore(0x20, caller())
             // to address (this contract)
-            mstore(0x24, address())
+            mstore(0x40, address())
             // total amount
-            mstore(0x44, _totalAmount)
+            mstore(0x60, _totalAmount)
 
             // transfer total amount to this contract
-            if iszero(call(gas(), _token, 0, 0x00, 0x64, 0, 0)) { revert(0, 0) }
-
-            // transfer(address to, uint256 value)
-            mstore(0x00, hex"a9059cbb")
+            noError := and(noError, call(gas(), _token, 0, 0x1c, 0x64, 0, 0))
 
             // end of array
             let end := add(_addresses.offset, shl(5, _addresses.length))
@@ -111,16 +112,19 @@ contract GasliteDrop {
             // Loop through the addresses
             for { let addressOffset := _addresses.offset } 1 {} {
                 // to address
-                mstore(0x04, calldataload(addressOffset))
+                mstore(0x1c, calldataload(addressOffset))
                 // amount
-                mstore(0x24, calldataload(sub(addressOffset, diff)))
+                mstore(0x3c, calldataload(sub(addressOffset, diff)))
                 // transfer the tokens
-                if iszero(call(gas(), _token, 0, 0x00, 0x64, 0, 0)) { revert(0, 0) }
+                noError := and(noError, call(gas(), _token, 0, 0x18, 0x44, 0, 0))
                 // increment the address offset
                 addressOffset := add(addressOffset, 0x20)
                 // if addressOffset >= end, break
                 if iszero(lt(addressOffset, end)) { break }
             }
+
+            // Check final error flag.
+            if iszero(noError) { revert(0, 0) }
         }
     }
 
