@@ -43,7 +43,7 @@ contract GasliteDropTest is Test {
 
     function test_airdropERC20() public {
         // Fixed inputs for gas comparison.
-        test_fuzzedAirdropERC20(quantity, uint(keccak256("gas bad")));
+        test_fuzzedAirdropERC20(quantity, uint256(keccak256("gas bad")));
     }
 
     function test_fuzzedAirdropERC20(uint256 totalRecipients, uint256 initialRng) public {

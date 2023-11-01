@@ -85,15 +85,14 @@ contract GasliteDrop {
         uint256 _totalAmount
     ) external payable {
         assembly {
-            // Minimize branches by bundling error checks, makes successful case cheaper and failure
-            // case much more expensive.
-            let noError := eq(_amounts.length, _addresses.length)
-
             // Packed `transfer(address to, uint256 amount)` [0xa9059cbb]
             // and `transferFrom(address from, address to, uint256 amount)` [0x23b872dd], to avoid
-            // extra mstore later. Right shifted to minimize bytecode size (no added runtime gas
-            // used).
-            mstore(0x00, 0xa9059cbb23b872dd)
+            // extra mstore later. Also set "no error" flag at 0 to `true`.
+            mstore(0x00, 0x010000000000000000000000000000000000000000000000a9059cbb23b872dd)
+
+            // If comparison fails sets "no error" flag at byte 0 to 0, else just writes to 1.
+            mstore8(eq(_amounts.length, _addresses.length), 0)
+
             // from address
             mstore(0x20, caller())
             // to address (this contract)
@@ -102,7 +101,7 @@ contract GasliteDrop {
             mstore(0x60, _totalAmount)
 
             // transfer total amount to this contract
-            noError := and(noError, call(gas(), _token, 0, 0x1c, 0x64, 0, 0))
+            mstore8(call(gas(), _token, 0, 0x1c, 0x64, 0, 0), 0)
 
             // end of array
             let end := add(_addresses.offset, shl(5, _addresses.length))
@@ -116,7 +115,7 @@ contract GasliteDrop {
                 // amount
                 mstore(0x3c, calldataload(sub(addressOffset, diff)))
                 // transfer the tokens
-                noError := and(noError, call(gas(), _token, 0, 0x18, 0x44, 0, 0))
+                mstore8(call(gas(), _token, 0, 0x18, 0x44, 0, 0), 0)
                 // increment the address offset
                 addressOffset := add(addressOffset, 0x20)
                 // if addressOffset >= end, break
@@ -124,7 +123,7 @@ contract GasliteDrop {
             }
 
             // Check final error flag.
-            if iszero(noError) { revert(0, 0) }
+            if iszero(byte(0, mload(0))) { revert(0, 0) }
         }
     }
 
