@@ -4,6 +4,7 @@ import {GasliteDrop} from "./../src/GasliteDrop.sol";
 import {NFT} from "./../test/utils/NFT.sol";
 import {Token} from "./../test/utils/Token.sol";
 import {LibPRNG} from "@solady/utils/LibPRNG.sol";
+import {DropPackLib} from "../src/utils/DropPackLib.sol";
 import "forge-std/Test.sol";
 
 contract GasliteDropTest is Test {
@@ -47,6 +48,7 @@ contract GasliteDropTest is Test {
     }
 
     function test_fuzzedAirdropERC20(uint256 totalRecipients, uint256 initialRng) public {
+        vm.pauseGasMetering();
         totalRecipients = bound(totalRecipients, 0, MAX_ERC20_BATCH_DROP);
         LibPRNG.PRNG memory rng = LibPRNG.PRNG({state: initialRng});
 
@@ -54,25 +56,33 @@ contract GasliteDropTest is Test {
         uint256 total = 0;
         address[] memory recipients = new address[](totalRecipients);
         uint256[] memory amounts = new uint256[](totalRecipients);
+        bytes32[] memory packedRecipients = new bytes32[] (totalRecipients);
         for (uint256 i = 0; i < totalRecipients; i++) {
-            recipients[i] = address(uint160(rng.next()));
-            // Constrain to 96-bits for packing later
+            address recipient = address(uint160(rng.next()));
+            recipients[i] = recipient;
+            // Constrain to 96-bits for packing.
             uint256 amount = uint96(rng.next());
             total += amount;
             amounts[i] = amount;
+            packedRecipients[i] = DropPackLib.packERC20Recipient(recipient, amount);
         }
         deal(address(token), sender, total);
 
         // Interaction.
         vm.startPrank(sender);
         token.approve(address(gasliteDrop), type(uint256).max);
-        gasliteDrop.airdropERC20(address(token), recipients, amounts, total);
+
+        vm.resumeGasMetering();
+        gasliteDrop.airdropERC20(address(token), packedRecipients, total);
+        vm.pauseGasMetering();
+
         vm.stopPrank();
 
         // Checks.
         for (uint256 i = 0; i < totalRecipients; i++) {
             assertEq(token.balanceOf(recipients[i]), amounts[i]);
         }
+        vm.resumeGasMetering();
     }
 
     function test_airdropETH() public {

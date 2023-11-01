@@ -75,23 +75,16 @@ contract GasliteDrop {
 
     /// @notice Airdrop ERC20 tokens to a list of addresses
     /// @param _token The address of the ERC20 contract
-    /// @param _addresses The addresses to airdrop to
-    /// @param _amounts The amounts to airdrop
+    /// @param _packedRecipients Recipient address packed with 96-bit amount (recipient ++ amount)
     /// @param _totalAmount The total amount to airdrop
-    function airdropERC20(
-        address _token,
-        address[] calldata _addresses,
-        uint256[] calldata _amounts,
-        uint256 _totalAmount
-    ) external payable {
+    function airdropERC20(address _token, bytes32[] calldata _packedRecipients, uint256 _totalAmount)
+        external
+        payable
+    {
         assembly {
-            // Packed `transfer(address to, uint256 amount)` [0xa9059cbb]
-            // and `transferFrom(address from, address to, uint256 amount)` [0x23b872dd], to avoid
-            // extra mstore later. Also set "no error" flag at 0 to `true`.
-            mstore(0x00, 0x010000000000000000000000000000000000000000000000a9059cbb23b872dd)
-
-            // If comparison fails sets "no error" flag at byte 0 to 0, else just writes to 1.
-            mstore8(eq(_amounts.length, _addresses.length), 0)
+            // Puts selector of `transferFrom(address from, address to, uint256 amount)` in memory
+            // together with the default value for the "no error" flag (true i.e. `1`).
+            mstore(0x00, 0x0100000000000000000000000000000000000000000000000000000023b872dd)
 
             // from address
             mstore(0x20, caller())
@@ -104,22 +97,25 @@ contract GasliteDrop {
             mstore8(call(gas(), _token, 0, 0x1c, 0x64, 0, 0), 0)
 
             // end of array
-            let end := add(_addresses.offset, shl(5, _addresses.length))
-            // diff = _addresses.offset - _amounts.offset
-            let diff := sub(_addresses.offset, _amounts.offset)
+            let end := add(_packedRecipients.offset, shl(5, _packedRecipients.length))
+
+            // Puts selector of `transfer(address to, uint256 amount)` in memory with touching the
+            // "no error" flag.
+            mstore(0x01, 0xa9059cbb00)
 
             // Loop through the addresses
-            for { let addressOffset := _addresses.offset } 1 {} {
-                // to address
-                mstore(0x1c, calldataload(addressOffset))
+            for { let recipientsOffset := _packedRecipients.offset } 1 {} {
+                let packedRecipient := calldataload(recipientsOffset)
+                // to address (shifted left by 12 bytes)
+                mstore(0x2c, packedRecipient)
                 // amount
-                mstore(0x3c, calldataload(sub(addressOffset, diff)))
+                mstore(0x40, and(0xffffffffffffffffffffffff, packedRecipient))
                 // transfer the tokens
-                mstore8(call(gas(), _token, 0, 0x18, 0x44, 0, 0), 0)
+                mstore8(call(gas(), _token, 0, 0x1c, 0x44, 0, 0), 0)
                 // increment the address offset
-                addressOffset := add(addressOffset, 0x20)
+                recipientsOffset := add(recipientsOffset, 0x20)
                 // if addressOffset >= end, break
-                if iszero(lt(addressOffset, end)) { break }
+                if iszero(lt(recipientsOffset, end)) { break }
             }
 
             // Check final error flag.
