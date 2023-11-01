@@ -3,26 +3,30 @@ pragma solidity 0.8.19;
 import {GasliteDrop} from "./../src/GasliteDrop.sol";
 import {NFT} from "./../test/utils/NFT.sol";
 import {Token} from "./../test/utils/Token.sol";
+import {LibPRNG} from "@solady/utils/LibPRNG.sol";
 import "forge-std/Test.sol";
 
 contract GasliteDropTest is Test {
+    using LibPRNG for LibPRNG.PRNG;
+
     GasliteDrop gasliteDrop;
     NFT nft;
     Token token;
-    address user = vm.addr(0x1);
+    address immutable sender = makeAddr("sender");
     uint256 quantity = 1000;
     uint256 value = quantity * 0.001 ether;
+
+    uint256 internal constant MAX_ERC20_BATCH_DROP = 1000;
 
     function setUp() public {
         nft = new NFT();
         token = new Token();
-        token.transfer(user, quantity);
         gasliteDrop = new GasliteDrop();
     }
 
     function test_airdropERC721() public {
-        vm.startPrank(user);
-        nft.batchMint(address(user), quantity);
+        vm.startPrank(sender);
+        nft.batchMint(address(sender), quantity);
 
         uint256[] memory tokenIds = new uint256[](quantity);
         address[] memory recipients = new address[](quantity);
@@ -38,22 +42,42 @@ contract GasliteDropTest is Test {
     }
 
     function test_airdropERC20() public {
-        vm.startPrank(user);
-        token.approve(address(gasliteDrop), quantity);
+        // Fixed inputs for gas comparison.
+        test_fuzzedAirdropERC20(quantity, uint(keccak256("gas bad")));
+    }
 
-        address[] memory recipients = new address[](quantity);
-        uint256[] memory amounts = new uint256[](quantity);
-        for (uint256 i = 0; i < quantity; i++) {
-            recipients[i] = vm.addr(2);
-            amounts[i] = 1;
+    function test_fuzzedAirdropERC20(uint256 totalRecipients, uint256 initialRng) public {
+        totalRecipients = bound(totalRecipients, 0, MAX_ERC20_BATCH_DROP);
+        LibPRNG.PRNG memory rng = LibPRNG.PRNG({state: initialRng});
+
+        // Setup.
+        uint256 total = 0;
+        address[] memory recipients = new address[](totalRecipients);
+        uint256[] memory amounts = new uint256[](totalRecipients);
+        for (uint256 i = 0; i < totalRecipients; i++) {
+            recipients[i] = address(uint160(rng.next()));
+            // Constrain to 96-bits for packing later
+            uint256 amount = uint96(rng.next());
+            total += amount;
+            amounts[i] = amount;
         }
-        gasliteDrop.airdropERC20(address(token), recipients, amounts, quantity);
+        deal(address(token), sender, total);
+
+        // Interaction.
+        vm.startPrank(sender);
+        token.approve(address(gasliteDrop), type(uint256).max);
+        gasliteDrop.airdropERC20(address(token), recipients, amounts, total);
         vm.stopPrank();
+
+        // Checks.
+        for (uint256 i = 0; i < totalRecipients; i++) {
+            assertEq(token.balanceOf(recipients[i]), amounts[i]);
+        }
     }
 
     function test_airdropETH() public {
-        payable(user).transfer(value);
-        vm.startPrank(user);
+        payable(sender).transfer(value);
+        vm.startPrank(sender);
 
         address[] memory recipients = new address[](quantity);
         uint256[] memory amounts = new uint256[](quantity);
