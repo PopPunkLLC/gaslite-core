@@ -1,7 +1,7 @@
 pragma solidity 0.8.19;
 
+// forgefmt: disable-start
 /**
-                                                                                                                   
                                                           bbbbbbbb                                         dddddddd
                                                           b::::::b                                         d::::::d
                                                           b::::::b                                         d::::::d
@@ -19,14 +19,15 @@ g:::::::ggggg:::::ga::::a    a:::::as:::::ssss::::::s      b:::::bbbbbb::::::ba:
  g::::::::::::::::ga:::::aaaa::::::as::::::::::::::s       b::::::::::::::::b a:::::aaaa::::::a d:::::::::::::::::d
   gg::::::::::::::g a::::::::::aa:::as:::::::::::ss        b:::::::::::::::b   a::::::::::aa:::a d:::::::::ddd::::d
     gggggggg::::::g  aaaaaaaaaa  aaaa sssssssssss          bbbbbbbbbbbbbbbb     aaaaaaaaaa  aaaa  ddddddddd   ddddd
-            g:::::g                                                                                                
-gggggg      g:::::g                                                                                                
-g:::::gg   gg:::::g                                                                                                
- g::::::ggg:::::::g                                                                                                
-  gg:::::::::::::g                                                                                                 
-    ggg::::::ggg                                                                                                   
-       gggggg                                                                                                      
+            g:::::g
+gggggg      g:::::g
+g:::::gg   gg:::::g
+ g::::::ggg:::::::g
+  gg:::::::::::::g
+    ggg::::::ggg
+       gggggg
  */
+// forgefmt: disable-end
 
 /// @title GasliteSplitter
 /// @notice Turbo gas optimized payment splitter
