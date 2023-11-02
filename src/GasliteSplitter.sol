@@ -76,13 +76,9 @@ contract GasliteSplitter {
     /// @param _recipients The addresses to split to
     /// @param _shares The shares for each address
     /// @param _releaseRoyalty Optional flag to give 0.1% to caller of release()
-    /// @param _hashOfPackedSplitSlot The hash of the storage slot of the packedSplits array. Unless this contract is modified or inherited alongside other contracts, this would be keccak256(abi.encode(0))
-    constructor(
-        address[] memory _recipients,
-        uint256[] memory _shares,
-        bool _releaseRoyalty,
-        bytes32 _hashOfPackedSplitSlot
-    ) {
+    constructor(address[] memory _recipients, uint256[] memory _shares, bool _releaseRoyalty) {
+        // solidity accesible cache of hashOfPackedSplitSlot
+        bytes32 hashOfPackedSplitSlot;
         // running total of sum of _shares array
         uint256 accumulatedShares;
         assembly {
@@ -101,8 +97,10 @@ contract GasliteSplitter {
             // store array size to packedSplits slot
             sstore(packedSplits.slot, size)
             // store hash of packedSlits slot to get first storage slot for array data
-            let splitsSlot := _hashOfPackedSplitSlot
+            mstore(0x00, packedSplits.slot)
+            hashOfPackedSplitSlot := keccak256(0x00, 0x20)
 
+            let splitsSlot := hashOfPackedSplitSlot
             for {} 1 {} {
                 // load share and recipient
                 let share := mload(sharesOffset)
@@ -126,7 +124,7 @@ contract GasliteSplitter {
         // because they're immutable to save gas on SLOAD
         releaseRoyalty = _releaseRoyalty;
         totalShares = accumulatedShares;
-        HASH_OF_PACKED_SPLIT_SLOT = _hashOfPackedSplitSlot;
+        HASH_OF_PACKED_SPLIT_SLOT = hashOfPackedSplitSlot;
     }
 
     /// @notice Release all eth (address(this).balance) to the recipients

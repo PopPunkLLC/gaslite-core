@@ -9,14 +9,13 @@ contract NFTSplitterTest is Test {
     NFTSplitter nft;
     GasliteSplitter splitter;
     Token token;
-    bytes32 constant HASH_OF_PACKED_SPLIT_SLOT = keccak256(abi.encode(0));
     address[] recipients = [vm.addr(1), vm.addr(2), vm.addr(3)];
     uint256[] shares = [10, 20, 30];
 
     address minter = vm.addr(4);
 
     function setUp() external {
-        splitter = new GasliteSplitter(recipients, shares, false, HASH_OF_PACKED_SPLIT_SLOT);
+        splitter = new GasliteSplitter(recipients, shares, false);
         vm.prank(minter);
         token = new Token();
         nft = new NFTSplitter(address(splitter), address(token));

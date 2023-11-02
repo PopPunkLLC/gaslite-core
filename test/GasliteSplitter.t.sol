@@ -5,7 +5,6 @@ import {GasliteSplitter} from "./../src/GasliteSplitter.sol";
 import {Token} from "./../test/utils/Token.sol";
 
 contract GasliteSplitterTest is Test {
-    bytes32 constant HASH_OF_PACKED_SPLIT_SLOT = keccak256(abi.encode(0));
     GasliteSplitter splitter;
     Token token;
 
@@ -20,7 +19,7 @@ contract GasliteSplitterTest is Test {
             recipients[i] = vm.addr(i + 1);
             shares[i] = 5;
         }
-        splitter = new GasliteSplitter(recipients, shares, false, HASH_OF_PACKED_SPLIT_SLOT);
+        splitter = new GasliteSplitter(recipients, shares, false);
         token = new Token();
     }
 
@@ -53,7 +52,7 @@ contract GasliteSplitterTest is Test {
         _shares[2] = 2;
         _shares[3] = 2;
         _shares[4] = 3;
-        splitter = new GasliteSplitter(recipients, _shares, false, HASH_OF_PACKED_SPLIT_SLOT);
+        splitter = new GasliteSplitter(recipients, _shares, false);
         payable(address(splitter)).transfer(10 ether);
         assertEq(address(splitter).balance, 10 ether);
         uint256 total = splitter.totalShares();
@@ -67,7 +66,7 @@ contract GasliteSplitterTest is Test {
     }
 
     function test_splitterSplitETHReleaseRoyalty() public {
-        splitter = new GasliteSplitter(recipients, shares, true, HASH_OF_PACKED_SPLIT_SLOT);
+        splitter = new GasliteSplitter(recipients, shares, true);
         bool releaseRoyalty = splitter.releaseRoyalty();
         assertEq(releaseRoyalty, true);
 
@@ -102,7 +101,7 @@ contract GasliteSplitterTest is Test {
         _shares[2] = 2;
         _shares[3] = 2;
         _shares[4] = 3;
-        splitter = new GasliteSplitter(recipients, _shares, false, HASH_OF_PACKED_SPLIT_SLOT);
+        splitter = new GasliteSplitter(recipients, _shares, false);
         token.approve(address(splitter), 10e18);
         token.transfer(address(splitter), 10e18);
         assertEq(token.balanceOf(address(splitter)), 10e18);
@@ -117,7 +116,7 @@ contract GasliteSplitterTest is Test {
     }
 
     function test_splitterSplitTokenReleaseRoyalty() public {
-        splitter = new GasliteSplitter(recipients, shares, true, HASH_OF_PACKED_SPLIT_SLOT);
+        splitter = new GasliteSplitter(recipients, shares, true);
         bool releaseRoyalty = splitter.releaseRoyalty();
         assertEq(releaseRoyalty, true);
 

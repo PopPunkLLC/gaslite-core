@@ -26,8 +26,7 @@ contract GasliteSplitterScript is Script {
         bool _releaseRoyalty = false;
 
         vm.startBroadcast(deployerPrivateKey);
-        address splitterAddress =
-            address(new GasliteSplitter(_recipients, _shares, _releaseRoyalty, keccak256(abi.encode(0))));
+        address splitterAddress = address(new GasliteSplitter(_recipients, _shares, _releaseRoyalty));
         vm.stopBroadcast();
 
         console.log("Deployed contract at address: ", splitterAddress);
