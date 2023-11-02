@@ -124,31 +124,29 @@ contract GasliteDrop {
     }
 
     /// @notice Airdrop ETH to a list of addresses
-    /// @param _addresses The addresses to airdrop to
-    /// @param _amounts The amounts to airdrop
-    function airdropETH(address[] calldata _addresses, uint256[] calldata _amounts) external payable {
+    /// @param _packedRecipients Recipient address packed with 96-bit amount (amount ++ recipient)
+    function airdropETH(bytes32[] calldata _packedRecipients) external payable {
         assembly {
-            // Check that the number of addresses matches the number of amounts
-            if iszero(eq(_amounts.length, _addresses.length)) { revert(0, 0) }
+            // Assumes byte 0 in memory is 0 (default) i.e. scratch space untouched so far.
 
             // iterator
-            let i := _addresses.offset
+            let offset := _packedRecipients.offset
             // end of array
-            let end := add(i, shl(5, _addresses.length))
-            // diff = _addresses.offset - _amounts.offset
-            let diff := sub(_amounts.offset, _addresses.offset)
+            let end := add(offset, shl(5, _packedRecipients.length))
 
             // Loop through the addresses
             for {} 1 {} {
-                // transfer the ETH
-                if iszero(call(gas(), calldataload(i), calldataload(add(i, diff)), 0x00, 0x00, 0x00, 0x00)) {
-                    revert(0x00, 0x00)
-                }
+                let packedRecipient := calldataload(offset)
+                // transfer the ETH, byte 0 is error flag (0 = no error, 1 = error)
+                mstore8(call(gas(), packedRecipient, shr(160, packedRecipient), 0x00, 0x00, 0x00, 0x00), 1)
                 // increment the iterator
-                i := add(i, 0x20)
+                offset := add(offset, 0x20)
                 // if i >= end, break
-                if eq(end, i) { break }
+                if eq(end, offset) { break }
             }
+
+            // Check error flag.
+            if byte(0, mload(0x00)) { revert(0x0, 0x0) }
         }
     }
 }

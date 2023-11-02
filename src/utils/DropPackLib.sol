@@ -8,10 +8,10 @@ library DropPackLib {
     using SafeCastLib for uint256;
 
     function packERC20Recipient(address recipient, uint256 amount) internal pure returns (bytes32) {
-        bytes32(abi.encodePacked(recipient, amount.toUint96()));
+        return bytes32(abi.encodePacked(recipient, amount.toUint96()));
     }
 
     function packETHRecipient(address recipient, uint256 amount) internal pure returns (bytes32) {
-        bytes32(abi.encodePacked(amount.toUint96(), recipient));
+        return bytes32(abi.encodePacked(amount.toUint96(), recipient));
     }
 }
