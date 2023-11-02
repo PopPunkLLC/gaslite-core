@@ -122,10 +122,10 @@ contract GasliteSplitter {
 
     /// @notice Release all eth (address(this).balance) to the recipients
     function release() external {
-        // cache releaseRoyalty into memory
+        // cache releaseRoyalty unto the stack
         bool memReleaseRoyalty = releaseRoyalty;
 
-        // cache totalShares
+        // cache totalShares unto the stack
         uint256 total = totalShares;
 
         // initiate the arrays in memory
@@ -204,7 +204,7 @@ contract GasliteSplitter {
         // cache releaseRoyalty into stack
         bool memReleaseRoyalty = releaseRoyalty;
 
-        // cache totalShares
+        // cache totalShares unto the stack
         uint256 total = totalShares;
 
         // initiate the arrays in memory
