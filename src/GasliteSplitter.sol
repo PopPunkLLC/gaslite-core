@@ -56,7 +56,7 @@ contract GasliteSplitter {
     bytes32 private constant PAYMENT_RECEIVED_EVENT_SIGNATURE =
         0x6ef95f06320e7a25a04a175ca677b7052bdd97131872c2192525a629f51be770;
 
-    // hash of slot zero which is expected to be the `packedSplits` array
+    // hash of packed split slot
     bytes32 private immutable HASH_OF_PACKED_SPLIT_SLOT;
     // the total number of shares (calculated in constructor)
     uint256 public immutable totalShares;
@@ -120,7 +120,7 @@ contract GasliteSplitter {
             }
         }
 
-        // hash of zeroeth slot, release royalty and totalShares are set outside of assembly block
+        // hash of packed split slot, release royalty and totalShares are set outside of assembly block
         // because they're immutable to save gas on SLOAD
         releaseRoyalty = _releaseRoyalty;
         totalShares = accumulatedShares;
