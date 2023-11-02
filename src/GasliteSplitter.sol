@@ -128,7 +128,7 @@ contract GasliteSplitter {
         // cache totalShares
         uint256 total = totalShares;
 
-        // initiate the arrays in memory, update free memory pointer
+        // initiate the arrays in memory
         assembly {
             // cache balance of this contract
             let bal := selfbalance()
@@ -207,7 +207,7 @@ contract GasliteSplitter {
         // cache totalShares
         uint256 total = totalShares;
 
-        // initiate the arrays in memory, update free memory pointer
+        // initiate the arrays in memory
         assembly {
             // cache balance of _token in this contract
             mstore(0x00, hex"70a08231")
