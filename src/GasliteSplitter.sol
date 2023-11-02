@@ -47,13 +47,6 @@ contract GasliteSplitter {
      *                         (100 shares total)
      */
     bytes32[] private packedSplits;
-    // the total number of shares (calculated in constructor)
-    uint256 public immutable totalShares;
-    // flag to optionally give 0.1% to caller of release()
-    bool public immutable releaseRoyalty;
-
-    // event emitted when a payment is received (OpenZeppelin did this so I guess I have to do it too)
-    event PaymentReceived(address from, uint256 amount);
 
     // event emitted when a split is released
     bytes32 private constant SPLIT_RELEASED_EVENT_SIGNATURE =
@@ -64,8 +57,16 @@ contract GasliteSplitter {
         0x6ef95f06320e7a25a04a175ca677b7052bdd97131872c2192525a629f51be770;
 
     // hash of slot zero which is expected to be the `packedSplits` array
-    bytes32 private constant HASH_OF_ZEROETH_SLOT = 0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563;
+    bytes32 private immutable HASH_OF_PACKED_SPLIT_SLOT;
+    // the total number of shares (calculated in constructor)
+    uint256 public immutable totalShares;
+    // flag to optionally give 0.1% to caller of release()
+    bool public immutable releaseRoyalty;
 
+    // event emitted when a payment is received (OpenZeppelin did this so I guess I have to do it too)
+    event PaymentReceived(address from, uint256 amount);
+
+    // event emitted when tokens are split
     event SplitReleased(address[] recipients, uint256[] amounts);
 
     // error when the balance is zero
@@ -75,7 +76,12 @@ contract GasliteSplitter {
     /// @param _recipients The addresses to split to
     /// @param _shares The shares for each address
     /// @param _releaseRoyalty Optional flag to give 0.1% to caller of release()
-    constructor(address[] memory _recipients, uint256[] memory _shares, bool _releaseRoyalty) {
+    constructor(
+        address[] memory _recipients,
+        uint256[] memory _shares,
+        bool _releaseRoyalty,
+        bytes32 _hashOfPackedSplitSlot
+    ) {
         // running total of sum of _shares array
         uint256 accumulatedShares;
         assembly {
@@ -94,7 +100,7 @@ contract GasliteSplitter {
             // store array size to packedSplits slot
             sstore(packedSplits.slot, size)
             // store hash of packedSlits slot to get first storage slot for array data
-            let splitsSlot := HASH_OF_ZEROETH_SLOT
+            let splitsSlot := _hashOfPackedSplitSlot
 
             for {} 1 {} {
                 // load share and recipient
@@ -114,14 +120,19 @@ contract GasliteSplitter {
                 splitsSlot := add(splitsSlot, 0x01)
             }
         }
-        // release royalty and totalShares are set outside of assembly block
+
+        // hash of zeroeth slot, release royalty and totalShares are set outside of assembly block
         // because they're immutable to save gas on SLOAD
         releaseRoyalty = _releaseRoyalty;
         totalShares = accumulatedShares;
+        HASH_OF_PACKED_SPLIT_SLOT = _hashOfPackedSplitSlot;
     }
 
     /// @notice Release all eth (address(this).balance) to the recipients
     function release() external {
+        // cache to the stack as immutable vars can't be accessed in assembly blocks
+        bytes32 hashOfPackedSplitSlot = HASH_OF_PACKED_SPLIT_SLOT;
+
         // cache releaseRoyalty unto the stack
         bool memReleaseRoyalty = releaseRoyalty;
 
@@ -167,7 +178,7 @@ contract GasliteSplitter {
             }
 
             // get first packed slot, memory pointer, offsets, and end
-            let splitSlot := HASH_OF_ZEROETH_SLOT
+            let splitSlot := hashOfPackedSplitSlot
             let amountsOffset := add(amounts, 0x20)
             let addrOffset := sub(amounts, memAddresses)
             let end := add(amountsOffset, mul(mload(amounts), 0x20))
@@ -201,6 +212,9 @@ contract GasliteSplitter {
     /// @notice Release all of given token (IERC20(_token).balanceOf(address(this))) to the recipients
     /// @param _token The address of the token to release
     function release(address _token) external {
+        // cache to the stack as immutable vars can't be accessed in assembly blocks
+        bytes32 hashOfPackedSplitSlot = HASH_OF_PACKED_SPLIT_SLOT;
+
         // cache releaseRoyalty into stack
         bool memReleaseRoyalty = releaseRoyalty;
 
@@ -255,7 +269,7 @@ contract GasliteSplitter {
             }
 
             // get first packed slot, memory pointer, offsets, and end
-            let splitSlot := HASH_OF_ZEROETH_SLOT
+            let splitSlot := hashOfPackedSplitSlot
             let amountsOffset := add(amounts, 0x20)
             let addrOffset := sub(amounts, memAddresses)
             let end := add(amountsOffset, mul(mload(amounts), 0x20))
@@ -297,17 +311,23 @@ contract GasliteSplitter {
     /// @notice Retrieve the address for a split recipient at given `index`
     /// @param index The index of the split recipient
     function recipients(uint256 index) external view returns (address recipient) {
+        // cache to the stack as immutable vars can't be accessed in assembly blocks
+        bytes32 hashOfPackedSplitSlot = HASH_OF_PACKED_SPLIT_SLOT;
+
         assembly {
             if iszero(lt(index, sload(packedSplits.slot))) { revert(0, 0) }
-            recipient := shr(96, sload(add(index, HASH_OF_ZEROETH_SLOT)))
+            recipient := shr(96, sload(add(index, hashOfPackedSplitSlot)))
         }
     }
 
     /// @notice Retrieve an array of split recipients
     function recipients() external view returns (address[] memory _recipients) {
+        // cache to the stack as immutable vars can't be accessed in assembly blocks
+        bytes32 hashOfPackedSplitSlot = HASH_OF_PACKED_SPLIT_SLOT;
+
         _recipients = new address[](packedSplits.length);
         assembly {
-            let splitSlot := HASH_OF_ZEROETH_SLOT
+            let splitSlot := hashOfPackedSplitSlot
             let ptr := add(0x20, _recipients)
             let end := add(0x20, mul(0x20, mload(_recipients)))
 
@@ -323,17 +343,23 @@ contract GasliteSplitter {
     /// @notice Retrieve the shares for a split recipient at given `index`
     /// @param index The index of the split shares
     function shares(uint256 index) external view returns (uint256 share) {
+        // cache to the stack as immutable vars can't be accessed in assembly blocks
+        bytes32 hashOfPackedSplitSlot = HASH_OF_PACKED_SPLIT_SLOT;
+
         assembly {
             if iszero(lt(index, sload(packedSplits.slot))) { revert(0, 0) }
-            share := and(0xFFFFFFFFFFFFFFFFFFFFFFFF, sload(add(index, HASH_OF_ZEROETH_SLOT)))
+            share := and(0xFFFFFFFFFFFFFFFFFFFFFFFF, sload(add(index, hashOfPackedSplitSlot)))
         }
     }
 
     /// @notice Retrieve an array of split recipients shares
     function shares() external view returns (uint256[] memory _shares) {
+        // cache to the stack as immutable vars can't be accessed in assembly blocks
+        bytes32 hashOfPackedSplitSlot = HASH_OF_PACKED_SPLIT_SLOT;
+
         _shares = new uint256[](packedSplits.length);
         assembly {
-            let splitSlot := HASH_OF_ZEROETH_SLOT
+            let splitSlot := hashOfPackedSplitSlot
             let ptr := add(0x20, _shares)
             let end := add(0x20, mul(0x20, mload(_shares)))
 
