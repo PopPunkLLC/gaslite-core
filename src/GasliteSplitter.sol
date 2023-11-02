@@ -56,14 +56,14 @@ contract GasliteSplitter {
 
     // event emitted when a payment is received (OpenZeppelin did this so I guess I have to do it too)
     event PaymentReceived(address from, uint256 amount);
-    // event emitted when a split is released
 
     bytes32 private constant SPLIT_RELEASED_EVENT_SIGNATURE =
         0xa81a1a3f8e5470cb88006c7539ae66f8750a18c49bf0d312ef679e24bac0f014;
 
+    // event emitted when a split is released
     event SplitReleased(address[] recipients, uint256[] amounts);
-    // error when the balance is zero
 
+    // error when the balance is zero
     error BalanceZero();
 
     /// @notice Split payments to a list of addresses
