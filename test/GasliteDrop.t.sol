@@ -44,7 +44,7 @@ contract GasliteDropTest is Test {
 
     function test_airdropERC20() public {
         vm.pauseGasMetering();
-        LibPRNG.PRNG memory rng = LibPRNG.PRNG({state: uint(keccak256("gas bad (erc20 test)"))});
+        LibPRNG.PRNG memory rng = LibPRNG.PRNG({state: uint256(keccak256("gas bad (erc20 test)"))});
 
         // Setup.
         uint256 total = 0;
@@ -80,7 +80,7 @@ contract GasliteDropTest is Test {
 
     function test_airdropETH() public {
         vm.pauseGasMetering();
-        LibPRNG.PRNG memory rng = LibPRNG.PRNG({state: uint(keccak256("gas bad (erc20 test)"))});
+        LibPRNG.PRNG memory rng = LibPRNG.PRNG({state: uint256(keccak256("gas bad (erc20 test)"))});
 
         // Setup.
         uint256 total = 0;

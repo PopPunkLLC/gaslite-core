@@ -146,7 +146,9 @@ contract GasliteDrop {
             }
 
             // Check error flag.
-            if byte(0, mload(0x00)) { revert(0x0, 0x0) }
+            if iszero(lt(mload(0x00), 0x0100000000000000000000000000000000000000000000000000000000000000)) {
+                revert(0x0, 0x0)
+            }
         }
     }
 }
