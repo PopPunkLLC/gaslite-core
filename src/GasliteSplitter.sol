@@ -76,6 +76,7 @@ contract GasliteSplitter {
     /// @param _recipients The addresses to split to
     /// @param _shares The shares for each address
     /// @param _releaseRoyalty Optional flag to give 0.1% to caller of release()
+    /// @param _hashOfPackedSplitSlot The hash of the storage slot of the packedSplits array. Unless this contract is modified or inherited alongside other contracts, this would be keccak256(abi.encode(0))
     constructor(
         address[] memory _recipients,
         uint256[] memory _shares,
