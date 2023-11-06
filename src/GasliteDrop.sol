@@ -1,7 +1,8 @@
 pragma solidity 0.8.19;
 
+// forgefmt: disable-start
 /**
-                                                                                                                   
+
                                                           bbbbbbbb                                         dddddddd
                                                           b::::::b                                         d::::::d
                                                           b::::::b                                         d::::::d
@@ -19,14 +20,15 @@ g:::::::ggggg:::::ga::::a    a:::::as:::::ssss::::::s      b:::::bbbbbb::::::ba:
  g::::::::::::::::ga:::::aaaa::::::as::::::::::::::s       b::::::::::::::::b a:::::aaaa::::::a d:::::::::::::::::d
   gg::::::::::::::g a::::::::::aa:::as:::::::::::ss        b:::::::::::::::b   a::::::::::aa:::a d:::::::::ddd::::d
     gggggggg::::::g  aaaaaaaaaa  aaaa sssssssssss          bbbbbbbbbbbbbbbb     aaaaaaaaaa  aaaa  ddddddddd   ddddd
-            g:::::g                                                                                                
-gggggg      g:::::g                                                                                                
-g:::::gg   gg:::::g                                                                                                
- g::::::ggg:::::::g                                                                                                
-  gg:::::::::::::g                                                                                                 
-    ggg::::::ggg                                                                                                   
-       gggggg                                                                                                      
+            g:::::g
+gggggg      g:::::g
+g:::::gg   gg:::::g
+ g::::::ggg:::::::g
+  gg:::::::::::::g
+    ggg::::::ggg
+       gggggg
  */
+// forgefmt: disable-end
 
 /// @title GasliteDrop
 /// @notice Turbo gas optimized bulk transfers of ERC20, ERC721, and ETH
@@ -73,80 +75,79 @@ contract GasliteDrop {
 
     /// @notice Airdrop ERC20 tokens to a list of addresses
     /// @param _token The address of the ERC20 contract
-    /// @param _addresses The addresses to airdrop to
-    /// @param _amounts The amounts to airdrop
+    /// @param _packedRecipients Recipient address packed with 96-bit amount (recipient ++ amount)
     /// @param _totalAmount The total amount to airdrop
-    function airdropERC20(
-        address _token,
-        address[] calldata _addresses,
-        uint256[] calldata _amounts,
-        uint256 _totalAmount
-    ) external payable {
+    function airdropERC20(address _token, bytes32[] calldata _packedRecipients, uint256 _totalAmount)
+        external
+        payable
+    {
         assembly {
-            // Check that the number of addresses matches the number of amounts
-            if iszero(eq(_amounts.length, _addresses.length)) { revert(0, 0) }
+            // Puts selector of `transferFrom(address from, address to, uint256 amount)` in memory
+            // together with the default value for the "no error" flag (true i.e. `1`).
+            mstore(0x00, 0x0100000000000000000000000000000000000000000000000000000023b872dd)
 
-            // transferFrom(address from, address to, uint256 amount)
-            mstore(0x00, hex"23b872dd")
             // from address
-            mstore(0x04, caller())
+            mstore(0x20, caller())
             // to address (this contract)
-            mstore(0x24, address())
+            mstore(0x40, address())
             // total amount
-            mstore(0x44, _totalAmount)
+            mstore(0x60, _totalAmount)
 
             // transfer total amount to this contract
-            if iszero(call(gas(), _token, 0, 0x00, 0x64, 0, 0)) { revert(0, 0) }
-
-            // transfer(address to, uint256 value)
-            mstore(0x00, hex"a9059cbb")
+            mstore8(call(gas(), _token, 0, 0x1c, 0x64, 0, 0), 0)
 
             // end of array
-            let end := add(_addresses.offset, shl(5, _addresses.length))
-            // diff = _addresses.offset - _amounts.offset
-            let diff := sub(_addresses.offset, _amounts.offset)
+            let end := add(_packedRecipients.offset, shl(5, _packedRecipients.length))
+
+            // Puts selector of `transfer(address to, uint256 amount)` in memory with touching the
+            // "no error" flag.
+            mstore(0x01, 0xa9059cbb00)
 
             // Loop through the addresses
-            for { let addressOffset := _addresses.offset } 1 {} {
-                // to address
-                mstore(0x04, calldataload(addressOffset))
+            for { let recipientsOffset := _packedRecipients.offset } 1 {} {
+                let packedRecipient := calldataload(recipientsOffset)
+                // to address (shifted left by 12 bytes)
+                mstore(0x2c, packedRecipient)
                 // amount
-                mstore(0x24, calldataload(sub(addressOffset, diff)))
+                mstore(0x40, and(0xffffffffffffffffffffffff, packedRecipient))
                 // transfer the tokens
-                if iszero(call(gas(), _token, 0, 0x00, 0x64, 0, 0)) { revert(0, 0) }
+                mstore8(call(gas(), _token, 0, 0x1c, 0x44, 0, 0), 0)
                 // increment the address offset
-                addressOffset := add(addressOffset, 0x20)
+                recipientsOffset := add(recipientsOffset, 0x20)
                 // if addressOffset >= end, break
-                if iszero(lt(addressOffset, end)) { break }
+                if iszero(lt(recipientsOffset, end)) { break }
             }
+
+            // Check final error flag.
+            if iszero(byte(0, mload(0))) { revert(0, 0) }
         }
     }
 
     /// @notice Airdrop ETH to a list of addresses
-    /// @param _addresses The addresses to airdrop to
-    /// @param _amounts The amounts to airdrop
-    function airdropETH(address[] calldata _addresses, uint256[] calldata _amounts) external payable {
+    /// @param _packedRecipients Recipient address packed with 96-bit amount (amount ++ recipient)
+    function airdropETH(bytes32[] calldata _packedRecipients) external payable {
         assembly {
-            // Check that the number of addresses matches the number of amounts
-            if iszero(eq(_amounts.length, _addresses.length)) { revert(0, 0) }
+            // Assumes byte 0 in memory is 0 (default) i.e. scratch space untouched so far.
 
             // iterator
-            let i := _addresses.offset
+            let offset := _packedRecipients.offset
             // end of array
-            let end := add(i, shl(5, _addresses.length))
-            // diff = _addresses.offset - _amounts.offset
-            let diff := sub(_amounts.offset, _addresses.offset)
+            let end := add(offset, shl(5, _packedRecipients.length))
 
             // Loop through the addresses
             for {} 1 {} {
-                // transfer the ETH
-                if iszero(call(gas(), calldataload(i), calldataload(add(i, diff)), 0x00, 0x00, 0x00, 0x00)) {
-                    revert(0x00, 0x00)
-                }
+                let packedRecipient := calldataload(offset)
+                // transfer the ETH, byte 0 is error flag (0 = no error, 1 = error)
+                mstore8(call(gas(), packedRecipient, shr(160, packedRecipient), 0x00, 0x00, 0x00, 0x00), 1)
                 // increment the iterator
-                i := add(i, 0x20)
+                offset := add(offset, 0x20)
                 // if i >= end, break
-                if eq(end, i) { break }
+                if eq(end, offset) { break }
+            }
+
+            // Check error flag.
+            if iszero(lt(mload(0x00), 0x0100000000000000000000000000000000000000000000000000000000000000)) {
+                revert(0x0, 0x0)
             }
         }
     }
