@@ -1,41 +1,39 @@
 pragma solidity 0.8.19;
 
+// forgefmt: disable-start
 /**
-                                                                                                                   
-                                                          bbbbbbbb                                         dddddddd
-                                                          b::::::b                                         d::::::d
-                                                          b::::::b                                         d::::::d
-                                                          b::::::b                                         d::::::d
-                                                           b:::::b                                         d:::::d 
-   ggggggggg   ggggg aaaaaaaaaaaaa      ssssssssss         b:::::bbbbbbbbb      aaaaaaaaaaaaa      ddddddddd:::::d 
-  g:::::::::ggg::::g a::::::::::::a   ss::::::::::s        b::::::::::::::bb    a::::::::::::a   dd::::::::::::::d 
- g:::::::::::::::::g aaaaaaaaa:::::ass:::::::::::::s       b::::::::::::::::b   aaaaaaaaa:::::a d::::::::::::::::d 
-g::::::ggggg::::::gg          a::::as::::::ssss:::::s      b:::::bbbbb:::::::b           a::::ad:::::::ddddd:::::d 
-g:::::g     g:::::g    aaaaaaa:::::a s:::::s  ssssss       b:::::b    b::::::b    aaaaaaa:::::ad::::::d    d:::::d 
-g:::::g     g:::::g  aa::::::::::::a   s::::::s            b:::::b     b:::::b  aa::::::::::::ad:::::d     d:::::d 
-g:::::g     g:::::g a::::aaaa::::::a      s::::::s         b:::::b     b:::::b a::::aaaa::::::ad:::::d     d:::::d 
-g::::::g    g:::::ga::::a    a:::::assssss   s:::::s       b:::::b     b:::::ba::::a    a:::::ad:::::d     d:::::d 
-g:::::::ggggg:::::ga::::a    a:::::as:::::ssss::::::s      b:::::bbbbbb::::::ba::::a    a:::::ad::::::ddddd::::::dd
- g::::::::::::::::ga:::::aaaa::::::as::::::::::::::s       b::::::::::::::::b a:::::aaaa::::::a d:::::::::::::::::d
-  gg::::::::::::::g a::::::::::aa:::as:::::::::::ss        b:::::::::::::::b   a::::::::::aa:::a d:::::::::ddd::::d
-    gggggggg::::::g  aaaaaaaaaa  aaaa sssssssssss          bbbbbbbbbbbbbbbb     aaaaaaaaaa  aaaa  ddddddddd   ddddd
-            g:::::g                                                                                                
-gggggg      g:::::g                                                                                                
-g:::::gg   gg:::::g                                                                                                
- g::::::ggg:::::::g                                                                                                
-  gg:::::::::::::g                                                                                                 
-    ggg::::::ggg                                                                                                   
-       gggggg                                                                                                      
+ *                                                           bbbbbbbb                                         dddddddd
+ *                                                           b::::::b                                         d::::::d
+ *                                                           b::::::b                                         d::::::d
+ *                                                           b::::::b                                         d::::::d
+ *                                                            b:::::b                                         d:::::d
+ *    ggggggggg   ggggg aaaaaaaaaaaaa      ssssssssss         b:::::bbbbbbbbb      aaaaaaaaaaaaa      ddddddddd:::::d
+ *   g:::::::::ggg::::g a::::::::::::a   ss::::::::::s        b::::::::::::::bb    a::::::::::::a   dd::::::::::::::d
+ *  g:::::::::::::::::g aaaaaaaaa:::::ass:::::::::::::s       b::::::::::::::::b   aaaaaaaaa:::::a d::::::::::::::::d
+ * g::::::ggggg::::::gg          a::::as::::::ssss:::::s      b:::::bbbbb:::::::b           a::::ad:::::::ddddd:::::d
+ * g:::::g     g:::::g    aaaaaaa:::::a s:::::s  ssssss       b:::::b    b::::::b    aaaaaaa:::::ad::::::d    d:::::d
+ * g:::::g     g:::::g  aa::::::::::::a   s::::::s            b:::::b     b:::::b  aa::::::::::::ad:::::d     d:::::d
+ * g:::::g     g:::::g a::::aaaa::::::a      s::::::s         b:::::b     b:::::b a::::aaaa::::::ad:::::d     d:::::d
+ * g::::::g    g:::::ga::::a    a:::::assssss   s:::::s       b:::::b     b:::::ba::::a    a:::::ad:::::d     d:::::d
+ * g:::::::ggggg:::::ga::::a    a:::::as:::::ssss::::::s      b:::::bbbbbb::::::ba::::a    a:::::ad::::::ddddd::::::dd
+ *  g::::::::::::::::ga:::::aaaa::::::as::::::::::::::s       b::::::::::::::::b a:::::aaaa::::::a d:::::::::::::::::d
+ *   gg::::::::::::::g a::::::::::aa:::as:::::::::::ss        b:::::::::::::::b   a::::::::::aa:::a d:::::::::ddd::::d
+ *     gggggggg::::::g  aaaaaaaaaa  aaaa sssssssssss          bbbbbbbbbbbbbbbb     aaaaaaaaaa  aaaa  ddddddddd   ddddd
+ *             g:::::g
+ * gggggg      g:::::g
+ * g:::::gg   gg:::::g
+ *  g::::::ggg:::::::g
+ *   gg:::::::::::::g
+ *     ggg::::::ggg
+ *        gggggg
  */
+// forgefmt: disable-end
 
 /// @title GasliteSplitter
 /// @notice Turbo gas optimized payment splitter
 /// @author Harrison (@PopPunkOnChain)
 /// @author Thomas (@0xjustadev)
 /// @author Gaslite (@GasliteGG)
-interface IERC20 {
-    function balanceOf(address account) external view returns (uint256);
-}
 
 contract GasliteSplitter {
     /**
@@ -49,6 +47,17 @@ contract GasliteSplitter {
      *                         (100 shares total)
      */
     bytes32[] private packedSplits;
+
+    // event emitted when a split is released
+    bytes32 private constant SPLIT_RELEASED_EVENT_SIGNATURE =
+        0xa81a1a3f8e5470cb88006c7539ae66f8750a18c49bf0d312ef679e24bac0f014;
+
+    // event emitted when ether is received
+    bytes32 private constant PAYMENT_RECEIVED_EVENT_SIGNATURE =
+        0x6ef95f06320e7a25a04a175ca677b7052bdd97131872c2192525a629f51be770;
+
+    // hash of packed split slot
+    bytes32 private immutable HASH_OF_PACKED_SPLIT_SLOT;
     // the total number of shares (calculated in constructor)
     uint256 public immutable totalShares;
     // flag to optionally give 0.1% to caller of release()
@@ -56,14 +65,11 @@ contract GasliteSplitter {
 
     // event emitted when a payment is received (OpenZeppelin did this so I guess I have to do it too)
     event PaymentReceived(address from, uint256 amount);
-    // event emitted when a split is released
 
-    bytes32 private constant SPLIT_RELEASED_EVENT_SIGNATURE =
-        0xa81a1a3f8e5470cb88006c7539ae66f8750a18c49bf0d312ef679e24bac0f014;
-
+    // event emitted when tokens are split
     event SplitReleased(address[] recipients, uint256[] amounts);
-    // error when the balance is zero
 
+    // error when the balance is zero
     error BalanceZero();
 
     /// @notice Split payments to a list of addresses
@@ -71,6 +77,8 @@ contract GasliteSplitter {
     /// @param _shares The shares for each address
     /// @param _releaseRoyalty Optional flag to give 0.1% to caller of release()
     constructor(address[] memory _recipients, uint256[] memory _shares, bool _releaseRoyalty) {
+        // solidity accesible cache of hashOfPackedSplitSlot
+        bytes32 hashOfPackedSplitSlot;
         // running total of sum of _shares array
         uint256 accumulatedShares;
         assembly {
@@ -88,10 +96,11 @@ contract GasliteSplitter {
 
             // store array size to packedSplits slot
             sstore(packedSplits.slot, size)
-            // hash packedSlits slot to get first storage slot for array data
+            // store hash of packedSlits slot to get first storage slot for array data
             mstore(0x00, packedSplits.slot)
-            let splitsSlot := keccak256(0x00, 0x20)
+            hashOfPackedSplitSlot := keccak256(0x00, 0x20)
 
+            let splitsSlot := hashOfPackedSplitSlot
             for {} 1 {} {
                 // load share and recipient
                 let share := mload(sharesOffset)
@@ -110,44 +119,53 @@ contract GasliteSplitter {
                 splitsSlot := add(splitsSlot, 0x01)
             }
         }
-        // release royalty and totalShares are set outside of assembly block
+
+        // hash of packed split slot, release royalty and totalShares are set outside of assembly block
         // because they're immutable to save gas on SLOAD
         releaseRoyalty = _releaseRoyalty;
         totalShares = accumulatedShares;
+        HASH_OF_PACKED_SPLIT_SLOT = hashOfPackedSplitSlot;
     }
 
     /// @notice Release all eth (address(this).balance) to the recipients
     function release() external {
-        // cache releaseRoyalty into memory
+        // cache to the stack as immutable vars can't be accessed in assembly blocks
+        bytes32 hashOfPackedSplitSlot = HASH_OF_PACKED_SPLIT_SLOT;
+
+        // cache releaseRoyalty unto the stack
         bool memReleaseRoyalty = releaseRoyalty;
-        // create new array to store addresses
-        address[] memory memAddresses;
-        // create new array to store amounts that are calculated off shares
-        uint256[] memory amounts;
-        // initiate the arrays in memory, update free memory pointer
+
+        // cache totalShares unto the stack
+        uint256 total = totalShares;
+
+        // initiate the arrays in memory
         assembly {
+            // cache balance of this contract
+            let bal := selfbalance()
+
+            // revert early if address(this).balance is 0
+            if iszero(bal) {
+                mstore(0x00, hex"836fd8a7")
+                revert(0x00, 0x04)
+            }
+
             let size := sload(packedSplits.slot)
             let length := add(0x20, mul(0x20, size))
-            memAddresses := add(0x40, mload(0x40))
-            amounts := add(memAddresses, length)
-            mstore(0x40, add(amounts, length))
+
+            // canonical memAddresses array pointer, this returns the offset of the length of memAddresses
+            let memAddresses := 0x40
+
+            // canonical amounts array pointer, this returns the offset of the length of amounts
+            let amounts := add(memAddresses, length)
+
             mstore(memAddresses, size)
             mstore(amounts, size)
+
             // abi encoding value for addresses position
             mstore(sub(memAddresses, 0x40), 0x40)
             // abi encoding value for amounts position
             mstore(sub(memAddresses, 0x20), add(0x40, length))
-        }
 
-        // cache totalShares
-        uint256 total = totalShares;
-        // cache balance of this contract
-        uint256 bal = address(this).balance;
-
-        // revert is balance is zero
-        if (bal == 0) revert BalanceZero();
-
-        assembly {
             // if releaseRoyalty == true
             if memReleaseRoyalty {
                 // calculate 0.1% of balance as royalty
@@ -159,8 +177,7 @@ contract GasliteSplitter {
             }
 
             // get first packed slot, memory pointer, offsets, and end
-            mstore(0x00, packedSplits.slot)
-            let splitSlot := keccak256(0x00, 0x20)
+            let splitSlot := hashOfPackedSplitSlot
             let amountsOffset := add(amounts, 0x20)
             let addrOffset := sub(amounts, memAddresses)
             let end := add(amountsOffset, mul(mload(amounts), 0x20))
@@ -194,36 +211,46 @@ contract GasliteSplitter {
     /// @notice Release all of given token (IERC20(_token).balanceOf(address(this))) to the recipients
     /// @param _token The address of the token to release
     function release(address _token) external {
-        // cache releaseRoyalty into memory
+        // cache to the stack as immutable vars can't be accessed in assembly blocks
+        bytes32 hashOfPackedSplitSlot = HASH_OF_PACKED_SPLIT_SLOT;
+
+        // cache releaseRoyalty into stack
         bool memReleaseRoyalty = releaseRoyalty;
-        // create new array to store addresses
-        address[] memory memAddresses;
-        // create new array to store amounts that are calculated off shares
-        uint256[] memory amounts;
-        // initiate the arrays in memory, update free memory pointer
+
+        // cache totalShares unto the stack
+        uint256 total = totalShares;
+
+        // initiate the arrays in memory
         assembly {
+            // cache balance of _token in this contract
+            mstore(0x00, hex"70a08231")
+            mstore(0x04, address())
+
+            // if `_token` has no code deployed to it, returndatacopy would revert since returndata[(offset + length)] is greater than returndata.length
+            if iszero(staticcall(gas(), _token, 0x00, 0x24, 0x00, 0x00)) { revert(0x00, 0x00) }
+            returndatacopy(0x00, 0x00, 0x20)
+            let bal := mload(0x00)
+
+            // revert early if address(this).balance is 0
+            if iszero(bal) {
+                mstore(0x00, hex"836fd8a7")
+                revert(0x00, 0x04)
+            }
+
             let size := sload(packedSplits.slot)
             let length := add(0x20, mul(0x20, size))
-            memAddresses := add(0x40, mload(0x40))
-            amounts := add(memAddresses, length)
-            mstore(0x40, add(amounts, length))
+
+            let memAddresses := add(0x40, 0x60)
+            let amounts := add(memAddresses, length)
+
             mstore(memAddresses, size)
             mstore(amounts, size)
+
             // abi encoding value for addresses position
             mstore(sub(memAddresses, 0x40), 0x40)
             // abi encoding value for amounts position
             mstore(sub(memAddresses, 0x20), add(0x40, length))
-        }
 
-        // cache totalShares
-        uint256 total = totalShares;
-        // cache balance of _token in this contract
-        uint256 bal = IERC20(_token).balanceOf(address(this));
-
-        // revert is balance is zero
-        if (bal == 0) revert BalanceZero();
-
-        assembly {
             // if releaseRoyalty == true
             if memReleaseRoyalty {
                 // calculate 0.1% of balance as royalty
@@ -241,8 +268,7 @@ contract GasliteSplitter {
             }
 
             // get first packed slot, memory pointer, offsets, and end
-            mstore(0x00, packedSplits.slot)
-            let splitSlot := keccak256(0x00, 0x20)
+            let splitSlot := hashOfPackedSplitSlot
             let amountsOffset := add(amounts, 0x20)
             let addrOffset := sub(amounts, memAddresses)
             let end := add(amountsOffset, mul(mload(amounts), 0x20))
@@ -284,19 +310,23 @@ contract GasliteSplitter {
     /// @notice Retrieve the address for a split recipient at given `index`
     /// @param index The index of the split recipient
     function recipients(uint256 index) external view returns (address recipient) {
+        // cache to the stack as immutable vars can't be accessed in assembly blocks
+        bytes32 hashOfPackedSplitSlot = HASH_OF_PACKED_SPLIT_SLOT;
+
         assembly {
             if iszero(lt(index, sload(packedSplits.slot))) { revert(0, 0) }
-            mstore(0x00, packedSplits.slot)
-            recipient := shr(96, sload(add(index, keccak256(0x00, 0x20))))
+            recipient := shr(96, sload(add(index, hashOfPackedSplitSlot)))
         }
     }
 
     /// @notice Retrieve an array of split recipients
     function recipients() external view returns (address[] memory _recipients) {
+        // cache to the stack as immutable vars can't be accessed in assembly blocks
+        bytes32 hashOfPackedSplitSlot = HASH_OF_PACKED_SPLIT_SLOT;
+
         _recipients = new address[](packedSplits.length);
         assembly {
-            mstore(0x00, packedSplits.slot)
-            let splitSlot := keccak256(0x00, 0x20)
+            let splitSlot := hashOfPackedSplitSlot
             let ptr := add(0x20, _recipients)
             let end := add(0x20, mul(0x20, mload(_recipients)))
 
@@ -312,19 +342,23 @@ contract GasliteSplitter {
     /// @notice Retrieve the shares for a split recipient at given `index`
     /// @param index The index of the split shares
     function shares(uint256 index) external view returns (uint256 share) {
+        // cache to the stack as immutable vars can't be accessed in assembly blocks
+        bytes32 hashOfPackedSplitSlot = HASH_OF_PACKED_SPLIT_SLOT;
+
         assembly {
             if iszero(lt(index, sload(packedSplits.slot))) { revert(0, 0) }
-            mstore(0x00, packedSplits.slot)
-            share := and(0xFFFFFFFFFFFFFFFFFFFFFFFF, sload(add(index, keccak256(0x00, 0x20))))
+            share := and(0xFFFFFFFFFFFFFFFFFFFFFFFF, sload(add(index, hashOfPackedSplitSlot)))
         }
     }
 
     /// @notice Retrieve an array of split recipients shares
     function shares() external view returns (uint256[] memory _shares) {
+        // cache to the stack as immutable vars can't be accessed in assembly blocks
+        bytes32 hashOfPackedSplitSlot = HASH_OF_PACKED_SPLIT_SLOT;
+
         _shares = new uint256[](packedSplits.length);
         assembly {
-            mstore(0x00, packedSplits.slot)
-            let splitSlot := keccak256(0x00, 0x20)
+            let splitSlot := hashOfPackedSplitSlot
             let ptr := add(0x20, _shares)
             let end := add(0x20, mul(0x20, mload(_shares)))
 
@@ -340,6 +374,10 @@ contract GasliteSplitter {
     // receive function to receive ETH
     receive() external payable {
         // emit event when contract receives ETH
-        emit PaymentReceived(msg.sender, msg.value);
+        assembly {
+            mstore(0x00, caller())
+            mstore(0x20, callvalue())
+            log1(0x00, 0x40, PAYMENT_RECEIVED_EVENT_SIGNATURE)
+        }
     }
 }
