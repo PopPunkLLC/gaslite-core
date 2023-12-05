@@ -149,4 +149,20 @@ contract GasliteVestTest is Test {
         assertEq(token.balanceOf(recipient), 50e18);
         assertEq(token.balanceOf(admin), 50e18);
     }
+
+    function test_getVestingsByOwner() external {
+        vm.startPrank(admin);
+        token.approve(address(vest), 100e18);
+
+        vest.create(address(token), recipient, 75e18, 10, 20);
+        vest.create(address(token), recipient, 25e18, 10, 20);
+
+        GasliteVest.Vesting[] memory vestings = vest.getVestingsByOwner(admin);
+
+        assertEq(vestings.length, 2);
+        assertEq(vestings[0].recipient, recipient);
+        assertEq(vestings[0].amount, 75e18);
+        assertEq(vestings[1].recipient, recipient);
+        assertEq(vestings[1].amount, 25e18);
+    }
 }

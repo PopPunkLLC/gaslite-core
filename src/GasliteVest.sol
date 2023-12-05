@@ -147,4 +147,21 @@ contract GasliteVest is Ownable {
     function getVesting(uint256 id) external view returns (Vesting memory) {
         return vestings[id];
     }
+
+    function getVestingsByOwner(address owner) external view returns (Vesting[] memory) {
+        Vesting[] memory _vestings = new Vesting[](vestingId);
+
+        uint256 count;
+        for (uint256 i; i < vestingId;) {
+            if (vestings[i].owner == owner) {
+                _vestings[count] = vestings[i];
+                count++;
+            }
+            unchecked {
+                i++;
+            }
+        }
+
+        return _vestings;
+    }
 }
