@@ -2,7 +2,6 @@ pragma solidity 0.8.19;
 
 import "@solady/auth/Ownable.sol";
 import "@solady/tokens/ERC20.sol";
-import {console} from "forge-std/Console.sol";
 
 // forgefmt: disable-start
 /**
@@ -42,13 +41,14 @@ contract GasliteVest is Ownable {
     uint256 public vestingId;
 
     struct Vesting {
+        uint256 amount;
+        uint256 claimed;
         address token;
         address recipient;
-        uint256 amount;
+        address owner;
         uint32 start;
         uint32 end;
         uint32 lastClaim;
-        uint256 claimed;
     }
 
     mapping(uint256 => Vesting) public vestings;
@@ -56,6 +56,7 @@ contract GasliteVest is Ownable {
     error InvalidAddress();
     error InvalidAmount();
     error InvalidTimestamp();
+    error NotOwner();
 
     event Created(
         address indexed token, address indexed recipient, uint256 id, uint256 amount, uint32 start, uint32 end
@@ -69,7 +70,6 @@ contract GasliteVest is Ownable {
 
     function create(address token, address recipient, uint256 amount, uint32 start, uint32 end)
         external
-        onlyOwner
         returns (uint256)
     {
         if (token == address(0)) revert InvalidAddress();
@@ -85,6 +85,7 @@ contract GasliteVest is Ownable {
         Vesting storage vesting = vestings[id];
         vesting.token = token;
         vesting.recipient = recipient;
+        vesting.owner = msg.sender;
         vesting.amount = amount;
         vesting.start = start;
         vesting.end = end;
@@ -115,12 +116,14 @@ contract GasliteVest is Ownable {
         ERC20(vesting.token).transfer(vesting.recipient, amount);
     }
 
-    function cancel(uint256 id) external onlyOwner {
+    function cancel(uint256 id) external {
         Vesting storage vesting = vestings[id];
+
+        if (msg.sender != vesting.owner) revert NotOwner();
 
         uint256 vested = vestedAmount(id);
 
-        ERC20(vesting.token).transfer(owner(), vesting.amount - vested);
+        ERC20(vesting.token).transfer(vesting.owner, vesting.amount - vested);
         if (vested > 0) {
             ERC20(vesting.token).transfer(vesting.recipient, vested);
         }

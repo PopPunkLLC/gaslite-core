@@ -31,21 +31,24 @@ contract GasliteVestTest is Test {
         assertEq(token.balanceOf(address(vest)), 100e18);
 
         (
+            uint256 _amount,
+            uint256 _claimed,
             address _token,
             address _recipient,
-            uint256 _amount,
+            address _owner,
             uint32 _start,
             uint32 _end,
-            uint32 _lastClaim,
-            uint256 claimed
+            uint32 _lastClaim
         ) = vest.vestings(id);
+
+        assertEq(_amount, 100e18);
+        assertEq(_claimed, 0);
         assertEq(_token, address(token));
         assertEq(_recipient, recipient);
-        assertEq(_amount, 100e18);
+        assertEq(_owner, admin);
         assertEq(_start, 10);
         assertEq(_end, 20);
         assertEq(_lastClaim, 10);
-        assertEq(claimed, 0);
     }
 
     function test_claim() external {
@@ -63,7 +66,7 @@ contract GasliteVestTest is Test {
         assertEq(token.balanceOf(address(vest)), 50e18);
         assertEq(token.balanceOf(recipient), 50e18);
 
-        (,,,,,, uint256 claimed) = vest.vestings(id);
+        (, uint256 claimed,,,,,,) = vest.vestings(id);
         assertEq(claimed, 50e18);
     }
 
@@ -82,7 +85,7 @@ contract GasliteVestTest is Test {
         assertEq(token.balanceOf(address(vest)), 50e18);
         assertEq(token.balanceOf(recipient), 50e18);
 
-        (,,,,,, uint256 claimed) = vest.vestings(id);
+        (, uint256 claimed,,,,,,) = vest.vestings(id);
         assertEq(claimed, 50e18);
 
         vm.warp(16);
@@ -92,7 +95,7 @@ contract GasliteVestTest is Test {
         assertEq(token.balanceOf(address(vest)), 40e18);
         assertEq(token.balanceOf(recipient), 60e18);
 
-        (,,,,,, claimed) = vest.vestings(id);
+        (, claimed,,,,,,) = vest.vestings(id);
         assertEq(claimed, 60e18);
     }
 
@@ -111,7 +114,7 @@ contract GasliteVestTest is Test {
         assertEq(token.balanceOf(address(vest)), 0);
         assertEq(token.balanceOf(recipient), 100e18);
 
-        (,,,,,, uint256 claimed) = vest.vestings(id);
+        (, uint256 claimed,,,,,,) = vest.vestings(id);
         assertEq(claimed, 100e18);
     }
 
@@ -126,15 +129,13 @@ contract GasliteVestTest is Test {
         vest.cancel(id);
 
         assertEq(token.balanceOf(address(vest)), 0);
-        assertEq(token.balanceOf(recipient),0);
+        assertEq(token.balanceOf(recipient), 0);
         assertEq(token.balanceOf(admin), 100e18);
     }
 
     function test_cancelVested() external {
         vm.startPrank(admin);
         token.approve(address(vest), 100e18);
-
-        uint256 balanceBefore = token.balanceOf(address(this));
 
         uint256 id = vest.create(address(token), recipient, 100e18, 10, 20);
 
@@ -143,8 +144,6 @@ contract GasliteVestTest is Test {
         vm.warp(15);
 
         vest.cancel(id);
-
-        uint256 balanceAfter = token.balanceOf(address(this));
 
         assertEq(token.balanceOf(address(vest)), 0);
         assertEq(token.balanceOf(recipient), 50e18);
