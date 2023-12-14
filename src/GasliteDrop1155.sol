@@ -34,6 +34,12 @@ interface IERC1155 {
     function safeTransferFrom(address _from, address _to, uint256 _id, uint256 _value, bytes calldata _data) external;
 }
 
+/// @title GasliteDrop1155
+/// @notice Turbo gas optimized bulk transfers of ERC1155
+/// @author Harrison (@PopPunkOnChain)
+/// @author 0xjustadev (@0xjustadev)
+/// @author Gaslite (@GasliteGG)
+/// @author Pop Punk LLC (@PopPunkLLC)
 contract GasliteDrop1155 {
     bytes32 private immutable SAFE_TRANSFER_FROM_SELECTOR;
 
@@ -51,6 +57,9 @@ contract GasliteDrop1155 {
         SAFE_TRANSFER_FROM_SELECTOR = IERC1155.safeTransferFrom.selector;
     }
 
+    /// @notice Airdrop ERC1155 tokens to a list of addresses
+    /// @param tokenAddress The address of the ERC1155 contract
+    /// @param airdropTokens The tokenIds and amounts to airdrop
     function airdropERC1155(address tokenAddress, AirdropToken[] calldata airdropTokens) external {
         bytes32 safeTransferFromSelector = SAFE_TRANSFER_FROM_SELECTOR;
         assembly {
