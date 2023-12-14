@@ -1,5 +1,6 @@
 pragma solidity 0.8.19;
 
+// forgefmt: disable-start
 /**
                                                                                                                    
                                                           bbbbbbbb                                         dddddddd
@@ -27,6 +28,7 @@ g:::::gg   gg:::::g
     ggg::::::ggg                                                                                                   
        gggggg                                                                                                      
  */
+ // forgefmt: disable-end
 
 /// @title GasliteDrop
 /// @notice Turbo gas optimized bulk transfers of ERC20, ERC721, and ETH
