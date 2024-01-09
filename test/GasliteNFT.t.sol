@@ -19,8 +19,8 @@ contract GasliteNFTTest is Test {
         whitelistData[0] = bytes32(keccak256(abi.encodePacked(whitelistMinter)));
         whitelistRoot = whitelistMerkle.getRoot(whitelistData);
 
-        nft = new GasliteNFT("NFT", "NFT", whitelistRoot, 10000, 0.08 ether, 1, 20, "gaslite.org/");
-        nft.setLive();
+        nft = new GasliteNFT("NFT", "NFT", whitelistRoot, 10000, 0.08 ether, 1, 20, 5, "gaslite.org/");
+        nft.toggleLive();
     }
 
     function test_setup() external {
@@ -50,7 +50,7 @@ contract GasliteNFTTest is Test {
         payable(whitelistMinter).transfer(10_000 ether);
 
         vm.warp(5);
-        nft.setLive();
+        nft.toggleLive();
         vm.startPrank(whitelistMinter);
 
         // revert not live
@@ -59,7 +59,15 @@ contract GasliteNFTTest is Test {
         nft.whitelistMint{value: price * 5}(proof, 5);
 
         vm.stopPrank();
-        nft.setLive();
+        nft.toggleLive();
+        vm.startPrank(whitelistMinter);
+
+        // revert whitelist mint exceeded
+        nft.whitelistMint{value: price * 5}(proof, 5);
+        vm.expectRevert(GasliteNFT.WhitelistMintExceeded.selector);
+        nft.whitelistMint{value: price * 1}(proof, 1);
+
+        vm.stopPrank();
         vm.startPrank(whitelistMinter);
 
         // revert whitelist not live
@@ -68,6 +76,10 @@ contract GasliteNFTTest is Test {
         nft.whitelistMint{value: price * 5}(proof, 5);
 
         vm.warp(5);
+
+        vm.stopPrank();
+        nft.setMaxWhitelistMint(10000);
+        vm.startPrank(whitelistMinter);
 
         // revert insufficient payment
         vm.expectRevert(GasliteNFT.InsufficientPayment.selector);
@@ -84,9 +96,9 @@ contract GasliteNFTTest is Test {
 
         // revert supply exceeded
         proof = whitelistMerkle.getProof(whitelistData, 0);
-        nft.whitelistMint{value: price * 10_000}(proof, 10_000);
+        nft.whitelistMint{value: price * 9000}(proof, 9000);
         vm.expectRevert(GasliteNFT.SupplyExceeded.selector);
-        nft.whitelistMint{value: price * 5}(proof, 5);
+        nft.whitelistMint{value: price * 2000}(proof, 2000);
     }
 
     function test_publicMintSuccess() external {
@@ -105,7 +117,7 @@ contract GasliteNFTTest is Test {
         payable(publicMinter).transfer(10_000 ether);
 
         vm.warp(5);
-        nft.setLive();
+        nft.toggleLive();
         vm.startPrank(publicMinter);
 
         // revert not live
@@ -113,7 +125,7 @@ contract GasliteNFTTest is Test {
         nft.publicMint{value: price * 5}(5);
 
         vm.stopPrank();
-        nft.setLive();
+        nft.toggleLive();
         vm.startPrank(publicMinter);
 
         // revert public mint not live

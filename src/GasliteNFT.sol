@@ -30,7 +30,7 @@ pragma solidity 0.8.19;
 // forgefmt: disable-end
 
 import "@ERC721A/ERC721A.sol";
-import "@solady/auth/Ownable.sol";
+import "@openzeppelin/access/Ownable2Step.sol";
 import "@solady/utils/MerkleProofLib.sol";
 import {LibString} from "@solady/utils/LibString.sol";
 
@@ -38,17 +38,19 @@ import {LibString} from "@solady/utils/LibString.sol";
 /// @notice Turbo gas optimized NFT contract
 /// @author Harrison (@PopPunkOnChain)
 /// @author Gaslite (@GasliteGG)
-contract GasliteNFT is ERC721A, Ownable {
+contract GasliteNFT is ERC721A, Ownable2Step {
     bytes32 public whitelistRoot;
     uint256 public immutable MAX_SUPPLY;
     uint256 public price;
-    uint256 public whitelistOpen;
-    uint256 public whitelistClose;
+    uint64 public maxWhitelistMint;
+    uint64 public whitelistOpen;
+    uint64 public whitelistClose;
     bool public live;
     string private _baseURIString;
 
     error MintNotLive();
     error WhitelistNotLive();
+    error WhitelistMintExceeded();
     error PublicMintNotLive();
     error WhitelistMintUnauthorized();
     error SupplyExceeded();
@@ -76,17 +78,18 @@ contract GasliteNFT is ERC721A, Ownable {
         bytes32 _whitelistRoot,
         uint256 _maxSupply,
         uint256 _price,
-        uint256 _whitelistOpen,
-        uint256 _whitelistClose,
+        uint64 _whitelistOpen,
+        uint64 _whitelistClose,
+        uint64 _maxWhitelistMint,
         string memory _uri
     ) ERC721A(_name, _ticker) {
-        _initializeOwner(msg.sender);
         whitelistRoot = _whitelistRoot;
         MAX_SUPPLY = _maxSupply;
         price = _price;
         whitelistOpen = _whitelistOpen;
         whitelistClose = _whitelistClose;
         _baseURIString = _uri;
+        maxWhitelistMint = _maxWhitelistMint;
     }
 
     /// @notice Mint NFTs from the whitelist
@@ -94,12 +97,14 @@ contract GasliteNFT is ERC721A, Ownable {
     /// @param _amount Amount of NFTs to mint
     function whitelistMint(bytes32[] calldata _proof, uint256 _amount) external payable whitelistMintActive {
         if (!live) revert MintNotLive();
-        if (totalSupply() + _amount > MAX_SUPPLY) revert SupplyExceeded();
+        if (_getAux(msg.sender) >= maxWhitelistMint) revert WhitelistMintExceeded();
+        if (_totalMinted() + _amount > MAX_SUPPLY) revert SupplyExceeded();
         if (!MerkleProofLib.verify(_proof, whitelistRoot, keccak256(abi.encodePacked(msg.sender)))) {
             revert WhitelistMintUnauthorized();
         }
         if (msg.value != _amount * price) revert InsufficientPayment();
 
+        _setAux(msg.sender, _getAux(msg.sender) + uint64(_amount));
         _mint(msg.sender, _amount);
     }
 
@@ -108,7 +113,7 @@ contract GasliteNFT is ERC721A, Ownable {
     function publicMint(uint256 _amount) external payable {
         if (!live) revert MintNotLive();
         if (block.timestamp < whitelistClose) revert PublicMintNotLive();
-        if (totalSupply() + _amount > MAX_SUPPLY) revert SupplyExceeded();
+        if (_totalMinted() + _amount > MAX_SUPPLY) revert SupplyExceeded();
         if (msg.value != _amount * price) revert InsufficientPayment();
 
         _mint(msg.sender, _amount);
@@ -121,9 +126,9 @@ contract GasliteNFT is ERC721A, Ownable {
         price = _price;
     }
 
-    /// @notice Set the minting to live or not
+    /// @notice Toggle the minting to live or not
     /// @dev Only the owner can call this function
-    function setLive() external onlyOwner {
+    function toggleLive() external onlyOwner {
         live = !live;
     }
 
@@ -138,19 +143,26 @@ contract GasliteNFT is ERC721A, Ownable {
     /// @dev Only the owner can call this function
     /// @param _whitelistOpen Timestamp of when the whitelist opens
     /// @param _whitelistClose Timestamp of when the whitelist closes
-    function setWhitelistMintWindow(uint256 _whitelistOpen, uint256 _whitelistClose) external onlyOwner {
+    function setWhitelistMintWindow(uint64 _whitelistOpen, uint64 _whitelistClose) external onlyOwner {
         if (_whitelistOpen > _whitelistClose) revert InvalidWhitelistWindow();
         if (_whitelistOpen == 0) revert InvalidWhitelistWindow();
         if (_whitelistClose == 0) revert InvalidWhitelistWindow();
 
         whitelistOpen = _whitelistOpen;
         whitelistClose = _whitelistClose;
+    }   
+    
+    /// @notice Set the max whitelist mint
+    /// @dev Only the owner can call this function
+    /// @param _maxWhitelistMint Max whitelist mint
+    function setMaxWhitelistMint(uint64 _maxWhitelistMint) external onlyOwner {
+        maxWhitelistMint = _maxWhitelistMint;
     }
 
     /// @notice Set the base URI
     /// @dev Only the owner can call this function
     /// @param _uri Base URI of the NFT
-    function setTokenURI(string calldata _uri) external onlyOwner {
+    function setBaseUri(string calldata _uri) external onlyOwner {
         _baseURIString = _uri;
     }
 
