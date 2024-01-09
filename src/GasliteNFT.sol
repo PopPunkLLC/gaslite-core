@@ -99,14 +99,15 @@ contract GasliteNFT is ERC721A, Ownable2Step {
     /// @param _amount Amount of NFTs to mint
     function whitelistMint(bytes32[] calldata _proof, uint256 _amount) external payable whitelistMintActive {
         if (!live) revert MintNotLive();
-        if (_getAux(msg.sender) >= maxWhitelistMint) revert WhitelistMintExceeded();
+        uint64 minted = _getAux(msg.sender);
+        if (minted >= maxWhitelistMint) revert WhitelistMintExceeded();
         if (_totalMinted() + _amount > MAX_SUPPLY) revert SupplyExceeded();
         if (!MerkleProofLib.verify(_proof, whitelistRoot, keccak256(abi.encodePacked(msg.sender)))) {
             revert WhitelistMintUnauthorized();
         }
         if (msg.value != _amount * price) revert InsufficientPayment();
 
-        _setAux(msg.sender, _getAux(msg.sender) + uint64(_amount));
+        _setAux(msg.sender, minted + uint64(_amount));
         _mint(msg.sender, _amount);
     }
 
