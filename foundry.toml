@@ -5,4 +5,4 @@ libs = ["lib"]
 solc-version = "0.8.19"
 optimizer = true
 optimizer-runs = 999999
-gas_reports = ["GasliteDrop", "GasliteSplitter"]
+gas_reports = ["GasliteDrop", "GasliteSplitter", "GasliteNFT"]
