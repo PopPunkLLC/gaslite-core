@@ -72,6 +72,8 @@ contract GasliteNFT is ERC721A, Ownable2Step {
     /// @param _price Price of the NFT
     /// @param _whitelistOpen Timestamp of when the whitelist opens
     /// @param _whitelistClose Timestamp of when the whitelist closes
+    /// @param _maxWhitelistMint Max whitelist mint
+    /// @param _uri Base URI of the NFT
     constructor(
         string memory _name,
         string memory _ticker,
