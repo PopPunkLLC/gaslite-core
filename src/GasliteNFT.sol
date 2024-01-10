@@ -42,7 +42,9 @@ contract GasliteNFT is ERC721A, Ownable2Step {
     bytes32 public whitelistRoot;
     uint256 public immutable MAX_SUPPLY;
     uint256 public price;
+    uint256 public whitelistPrice;
     uint64 public maxWhitelistMint;
+    uint64 public maxPublicMint;
     uint64 public whitelistOpen;
     uint64 public whitelistClose;
     bool public live;
@@ -50,7 +52,7 @@ contract GasliteNFT is ERC721A, Ownable2Step {
 
     error MintNotLive();
     error WhitelistNotLive();
-    error WhitelistMintExceeded();
+    error MintExceeded();
     error PublicMintNotLive();
     error WhitelistMintUnauthorized();
     error SupplyExceeded();
@@ -80,18 +82,22 @@ contract GasliteNFT is ERC721A, Ownable2Step {
         bytes32 _whitelistRoot,
         uint256 _maxSupply,
         uint256 _price,
+        uint256 _whitelistPrice,
         uint64 _whitelistOpen,
         uint64 _whitelistClose,
         uint64 _maxWhitelistMint,
+        uint64 _maxPublicMint,
         string memory _uri
     ) ERC721A(_name, _ticker) {
         whitelistRoot = _whitelistRoot;
         MAX_SUPPLY = _maxSupply;
         price = _price;
+        whitelistPrice = _whitelistPrice;
         whitelistOpen = _whitelistOpen;
         whitelistClose = _whitelistClose;
         _baseURIString = _uri;
         maxWhitelistMint = _maxWhitelistMint;
+        maxPublicMint = _maxPublicMint;
     }
 
     /// @notice Mint NFTs from the whitelist
@@ -100,7 +106,7 @@ contract GasliteNFT is ERC721A, Ownable2Step {
     function whitelistMint(bytes32[] calldata _proof, uint256 _amount) external payable whitelistMintActive {
         if (!live) revert MintNotLive();
         uint64 minted = _getAux(msg.sender);
-        if (minted + _amount > maxWhitelistMint) revert WhitelistMintExceeded();
+        if (minted + _amount > maxWhitelistMint) revert MintExceeded();
         if (_totalMinted() + _amount > MAX_SUPPLY) revert SupplyExceeded();
         if (!MerkleProofLib.verify(_proof, whitelistRoot, keccak256(abi.encodePacked(msg.sender)))) {
             revert WhitelistMintUnauthorized();
@@ -115,18 +121,23 @@ contract GasliteNFT is ERC721A, Ownable2Step {
     /// @param _amount Amount of NFTs to mint
     function publicMint(uint256 _amount) external payable {
         if (!live) revert MintNotLive();
+        uint64 minted = _getAux(msg.sender);
+        if (minted + _amount > maxPublicMint) revert MintExceeded();
         if (block.timestamp < whitelistClose) revert PublicMintNotLive();
         if (_totalMinted() + _amount > MAX_SUPPLY) revert SupplyExceeded();
         if (msg.value != _amount * price) revert InsufficientPayment();
 
+        _setAux(msg.sender, minted + uint64(_amount));
         _mint(msg.sender, _amount);
     }
 
-    /// @notice Set the price of each NFT
+    /// @notice Set the prices of each NFT
     /// @dev Only the owner can call this function
     /// @param _price Price of each NFT
-    function setPrice(uint256 _price) external onlyOwner {
+    /// @param _whitelistPrice Price of each whitelist NFT
+    function setPrices(uint256 _price, uint256 _whitelistPrice) external onlyOwner {
         price = _price;
+        whitelistPrice = _whitelistPrice;
     }
 
     /// @notice Toggle the minting to live or not
@@ -158,8 +169,10 @@ contract GasliteNFT is ERC721A, Ownable2Step {
     /// @notice Set the max whitelist mint
     /// @dev Only the owner can call this function
     /// @param _maxWhitelistMint Max whitelist mint
-    function setMaxWhitelistMint(uint64 _maxWhitelistMint) external onlyOwner {
+    /// @param _maxPublcMint Max public mint
+    function setMaxMints(uint64 _maxWhitelistMint, uint64 _maxPublcMint) external onlyOwner {
         maxWhitelistMint = _maxWhitelistMint;
+        maxPublicMint = _maxPublcMint;
     }
 
     /// @notice Set the base URI

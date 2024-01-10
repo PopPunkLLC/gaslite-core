@@ -20,7 +20,7 @@ contract GasliteNFTTest is Test {
         whitelistData[0] = bytes32(keccak256(abi.encodePacked(whitelistMinter)));
         whitelistRoot = whitelistMerkle.getRoot(whitelistData);
 
-        nft = new GasliteNFT("NFT", "NFT", whitelistRoot, 10000, 0.08 ether, 1, 20, 5, "gaslite.org/");
+        nft = new GasliteNFT("NFT", "NFT", whitelistRoot, 10000, 0.08 ether, 0.08 ether, 1, 20, 5, 5, "gaslite.org/");
         nft.toggleLive();
     }
 
@@ -69,7 +69,7 @@ contract GasliteNFTTest is Test {
 
         bytes32[] memory proof = whitelistMerkle.getProof(whitelistData, 0);
         nft.whitelistMint{value: price * 5}(proof, 5);
-        vm.expectRevert(GasliteNFT.WhitelistMintExceeded.selector);
+        vm.expectRevert(GasliteNFT.MintExceeded.selector);
         nft.whitelistMint{value: price * 1}(proof, 1);
     }
 
@@ -117,7 +117,7 @@ contract GasliteNFTTest is Test {
         payable(whitelistMinter).transfer(10_000 ether);
 
         vm.warp(5);
-        nft.setMaxWhitelistMint(20000);
+        nft.setMaxMints(20000, 20000);
         vm.startPrank(whitelistMinter);
 
         bytes32[] memory proof = whitelistMerkle.getProof(whitelistData, 0);
@@ -149,6 +149,18 @@ contract GasliteNFTTest is Test {
         nft.publicMint{value: price * 5}(5);
     }
 
+    function test_publicMintMintExceeded() external {
+        uint256 price = nft.price();
+        payable(publicMinter).transfer(10_000 ether);
+
+        vm.warp(60);
+        vm.startPrank(publicMinter);
+
+        nft.publicMint{value: price * 5}(5);
+        vm.expectRevert(GasliteNFT.MintExceeded.selector);
+        nft.publicMint{value: price * 1}(1);
+    }
+
     function test_publicMintPublicMintNotLive() external {
         uint256 price = nft.price();
         payable(publicMinter).transfer(10_000 ether);
@@ -176,15 +188,16 @@ contract GasliteNFTTest is Test {
         payable(publicMinter).transfer(10_000 ether);
 
         vm.warp(60);
+        nft.setMaxMints(20000, 20000);
         vm.startPrank(publicMinter);
 
-        nft.publicMint{value: price * 10_000}(10_000);
+        nft.publicMint{value: price * 10000}(10000);
         vm.expectRevert(GasliteNFT.SupplyExceeded.selector);
-        nft.publicMint{value: price * 5}(5);
+        nft.publicMint{value: price * 1}(1);
     }
 
     function test_publicMintWithSetPriceSuccess() external {
-        nft.setPrice(0.06 ether);
+        nft.setPrices(0.06 ether, 0.06 ether);
 
         uint256 price = nft.price();
 
