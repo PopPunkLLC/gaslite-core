@@ -60,12 +60,6 @@ contract GasliteNFT is ERC721A, Ownable2Step {
     error InvalidWhitelistWindow();
     error TokenDoesNotExist();
 
-    modifier whitelistMintActive() {
-        if (block.timestamp < whitelistOpen) revert WhitelistNotLive();
-        if (block.timestamp > whitelistClose) revert WhitelistNotLive();
-        _;
-    }
-
     /// @notice Constructor
     /// @param _name Name of the NFT
     /// @param _ticker Ticker of the NFT
@@ -103,8 +97,10 @@ contract GasliteNFT is ERC721A, Ownable2Step {
     /// @notice Mint NFTs from the whitelist
     /// @param _proof Merkle proof of the address
     /// @param _amount Amount of NFTs to mint
-    function whitelistMint(bytes32[] calldata _proof, uint256 _amount) external payable whitelistMintActive {
+    function whitelistMint(bytes32[] calldata _proof, uint256 _amount) external payable {
         if (!live) revert MintNotLive();
+        if (block.timestamp < whitelistOpen) revert WhitelistNotLive();
+        if (block.timestamp > whitelistClose) revert WhitelistNotLive();
         uint64 minted = _getAux(msg.sender);
         if (minted + _amount > maxWhitelistMint) revert MintExceeded();
         if (_totalMinted() + _amount > MAX_SUPPLY) revert SupplyExceeded();
