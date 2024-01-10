@@ -29,7 +29,7 @@ pragma solidity 0.8.20;
  */
 // forgefmt: disable-end
 
-import "ERC721A/ERC721A.sol";
+import "@ERC721A/contracts/ERC721A.sol";
 import "@openzeppelin/contracts/access/Ownable2Step.sol";
 import "solady/src/utils/MerkleProofLib.sol";
 import {LibString} from "solady/src/utils/LibString.sol";
