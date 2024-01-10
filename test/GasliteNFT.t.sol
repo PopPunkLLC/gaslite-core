@@ -13,6 +13,7 @@ contract GasliteNFTTest is Test {
 
     address whitelistMinter = vm.addr(0x2);
     address publicMinter = vm.addr(0x3);
+    address publicMinter2 = vm.addr(0x4);
 
     function setUp() external {
         whitelistMerkle = new Merkle();
@@ -44,7 +45,7 @@ contract GasliteNFTTest is Test {
         nft.whitelistMint{value: price * 5}(proof, 5);
     }
 
-    function test_whitelistMintFailure() external {
+    function test_whitelistMintNotLive() external {
         uint256 price = nft.price();
 
         payable(whitelistMinter).transfer(10_000 ether);
@@ -53,52 +54,76 @@ contract GasliteNFTTest is Test {
         nft.toggleLive();
         vm.startPrank(whitelistMinter);
 
-        // revert not live
         bytes32[] memory proof = whitelistMerkle.getProof(whitelistData, 0);
         vm.expectRevert(GasliteNFT.MintNotLive.selector);
-        nft.whitelistMint{value: price * 5}(proof, 5);
+        nft.whitelistMint{value: price * 1}(proof, 1);
+    }
 
-        vm.stopPrank();
-        nft.toggleLive();
+    function test_whitelistMintMintExceeded() external {
+        uint256 price = nft.price();
+
+        payable(whitelistMinter).transfer(10_000 ether);
+
+        vm.warp(5);
         vm.startPrank(whitelistMinter);
 
-        // revert whitelist mint exceeded
+        bytes32[] memory proof = whitelistMerkle.getProof(whitelistData, 0);
         nft.whitelistMint{value: price * 5}(proof, 5);
         vm.expectRevert(GasliteNFT.WhitelistMintExceeded.selector);
         nft.whitelistMint{value: price * 1}(proof, 1);
+    }
 
-        vm.stopPrank();
+    function test_whitelistMintWhitelistNotLive() external {
+        uint256 price = nft.price();
+
+        payable(whitelistMinter).transfer(10_000 ether);
+
+        vm.warp(50);
         vm.startPrank(whitelistMinter);
 
-        // revert whitelist not live
-        vm.warp(50);
+        bytes32[] memory proof = whitelistMerkle.getProof(whitelistData, 0);
         vm.expectRevert(GasliteNFT.WhitelistNotLive.selector);
         nft.whitelistMint{value: price * 5}(proof, 5);
+    }
+
+    function test_whitelistMintInsufficientPayment() external {
+        uint256 price = nft.price();
+
+        payable(whitelistMinter).transfer(10_000 ether);
+
+        vm.warp(5);
+        vm.startPrank(whitelistMinter);
+
+        bytes32[] memory proof = whitelistMerkle.getProof(whitelistData, 0);
+        vm.expectRevert(GasliteNFT.InsufficientPayment.selector);
+        nft.whitelistMint{value: price * 4}(proof, 5);
+    }
+
+    function test_whitelistMintUnauthorized() external {
+        uint256 price = nft.price();
+
+        payable(whitelistMinter).transfer(10_000 ether);
 
         vm.warp(5);
 
-        vm.stopPrank();
-        nft.setMaxWhitelistMint(10000);
-        vm.startPrank(whitelistMinter);
-
-        // revert insufficient payment
-        vm.expectRevert(GasliteNFT.InsufficientPayment.selector);
-        nft.whitelistMint{value: price * 4}(proof, 5);
-
-        vm.stopPrank();
-
-        // revert mint unauthorized
-        proof = whitelistMerkle.getProof(whitelistData, 1);
+        bytes32[] memory proof = whitelistMerkle.getProof(whitelistData, 1);
         vm.expectRevert(GasliteNFT.WhitelistMintUnauthorized.selector);
         nft.whitelistMint{value: price * 5}(proof, 5);
+    }
 
+    function test_whitelistMintSupplyExceeded() external {
+        uint256 price = nft.price();
+
+        payable(whitelistMinter).transfer(10_000 ether);
+
+        vm.warp(5);
+        nft.setMaxWhitelistMint(20000);
         vm.startPrank(whitelistMinter);
 
-        // revert supply exceeded
-        proof = whitelistMerkle.getProof(whitelistData, 0);
-        nft.whitelistMint{value: price * 9000}(proof, 9000);
+        bytes32[] memory proof = whitelistMerkle.getProof(whitelistData, 0);
+        nft.whitelistMint{value: price * 10000}(proof, 10000);
         vm.expectRevert(GasliteNFT.SupplyExceeded.selector);
-        nft.whitelistMint{value: price * 2000}(proof, 2000);
+        nft.whitelistMint{value: price * 1}(proof, 1);
     }
 
     function test_publicMintSuccess() external {
@@ -112,7 +137,7 @@ contract GasliteNFTTest is Test {
         nft.publicMint{value: price * 5}(5);
     }
 
-    function test_publicMintFailure() external {
+    function test_publicMintNotLive() external {
         uint256 price = nft.price();
         payable(publicMinter).transfer(10_000 ether);
 
@@ -120,25 +145,39 @@ contract GasliteNFTTest is Test {
         nft.toggleLive();
         vm.startPrank(publicMinter);
 
-        // revert not live
         vm.expectRevert(GasliteNFT.MintNotLive.selector);
         nft.publicMint{value: price * 5}(5);
+    }
 
-        vm.stopPrank();
-        nft.toggleLive();
+    function test_publicMintPublicMintNotLive() external {
+        uint256 price = nft.price();
+        payable(publicMinter).transfer(10_000 ether);
+
+        vm.warp(5);
         vm.startPrank(publicMinter);
 
-        // revert public mint not live
-        vm.warp(10);
         vm.expectRevert(GasliteNFT.PublicMintNotLive.selector);
         nft.publicMint{value: price * 5}(5);
+    }
 
-        // revert insufficient payment
+    function test_publicMintInsufficientPayment() external {
+        uint256 price = nft.price();
+        payable(publicMinter).transfer(10_000 ether);
+
         vm.warp(60);
+        vm.startPrank(publicMinter);
+
         vm.expectRevert(GasliteNFT.InsufficientPayment.selector);
         nft.publicMint{value: price * 4}(5);
+    }
 
-        // revert supply exceeded
+    function test_publicMintSupplyExceeded() external {
+        uint256 price = nft.price();
+        payable(publicMinter).transfer(10_000 ether);
+
+        vm.warp(60);
+        vm.startPrank(publicMinter);
+
         nft.publicMint{value: price * 10_000}(10_000);
         vm.expectRevert(GasliteNFT.SupplyExceeded.selector);
         nft.publicMint{value: price * 5}(5);
