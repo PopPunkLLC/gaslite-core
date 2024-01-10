@@ -13,7 +13,6 @@ contract GasliteNFTTest is Test {
 
     address whitelistMinter = vm.addr(0x2);
     address publicMinter = vm.addr(0x3);
-    address publicMinter2 = vm.addr(0x4);
 
     function setUp() external {
         whitelistMerkle = new Merkle();
