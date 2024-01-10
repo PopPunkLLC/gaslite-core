@@ -1,7 +1,7 @@
-pragma solidity 0.8.19;
+pragma solidity 0.8.20;
 
-import "@solady/tokens/ERC721.sol";
-import "@solady/utils/LibString.sol";
+import "@solady/src//tokens/ERC721.sol";
+import "@solady/src/utils/LibString.sol";
 
 contract NFT is ERC721 {
     using LibString for uint256;
