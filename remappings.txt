@@ -1,6 +1,6 @@
 ds-test/=lib/forge-std/lib/ds-test/src/
 forge-std/=lib/forge-std/src/
-@solady/=lib/solady/src/
+@solady/=lib/solady/
 @ERC721A/=lib/ERC721A/contracts/
 @murky/=lib/murky/src/
-@openzeppelin/=lib/openzeppelin-contracts/contracts/
+@openzeppelin/=lib/openzeppelin-contracts/

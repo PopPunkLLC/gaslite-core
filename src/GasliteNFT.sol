@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity 0.8.20;
 
 // forgefmt: disable-start
 /**
@@ -29,10 +29,10 @@ pragma solidity 0.8.19;
  */
 // forgefmt: disable-end
 
-import "@ERC721A/ERC721A.sol";
-import "@openzeppelin/access/Ownable2Step.sol";
-import "@solady/utils/MerkleProofLib.sol";
-import {LibString} from "@solady/utils/LibString.sol";
+import "ERC721A/ERC721A.sol";
+import "@openzeppelin/contracts/access/Ownable2Step.sol";
+import "solady/src/utils/MerkleProofLib.sol";
+import {LibString} from "solady/src/utils/LibString.sol";
 
 /// @title GasliteNFT
 /// @notice Turbo gas optimized NFT contract
@@ -41,13 +41,13 @@ import {LibString} from "@solady/utils/LibString.sol";
 contract GasliteNFT is ERC721A, Ownable2Step {
     bytes32 public whitelistRoot;
     uint256 public immutable MAX_SUPPLY;
-    uint256 public price;
-    uint256 public whitelistPrice;
+    uint120 public price;
+    uint120 public whitelistPrice;
+    bool public live;
     uint64 public maxWhitelistMint;
     uint64 public maxPublicMint;
     uint64 public whitelistOpen;
     uint64 public whitelistClose;
-    bool public live;
     string private _baseURIString;
 
     error MintNotLive();
@@ -75,14 +75,14 @@ contract GasliteNFT is ERC721A, Ownable2Step {
         string memory _ticker,
         bytes32 _whitelistRoot,
         uint256 _maxSupply,
-        uint256 _price,
-        uint256 _whitelistPrice,
+        uint120 _price,
+        uint120 _whitelistPrice,
         uint64 _whitelistOpen,
         uint64 _whitelistClose,
         uint64 _maxWhitelistMint,
         uint64 _maxPublicMint,
         string memory _uri
-    ) ERC721A(_name, _ticker) {
+    ) ERC721A(_name, _ticker) Ownable(msg.sender) {
         whitelistRoot = _whitelistRoot;
         MAX_SUPPLY = _maxSupply;
         price = _price;
@@ -101,15 +101,14 @@ contract GasliteNFT is ERC721A, Ownable2Step {
         if (!live) revert MintNotLive();
         if (block.timestamp < whitelistOpen) revert WhitelistNotLive();
         if (block.timestamp > whitelistClose) revert WhitelistNotLive();
-        uint64 minted = _getAux(msg.sender);
-        if (minted + _amount > maxWhitelistMint) revert MintExceeded();
+        uint256 minted = _numberMinted(msg.sender) + _amount;
+        if (minted > maxWhitelistMint) revert MintExceeded();
         if (_totalMinted() + _amount > MAX_SUPPLY) revert SupplyExceeded();
         if (!MerkleProofLib.verify(_proof, whitelistRoot, keccak256(abi.encodePacked(msg.sender)))) {
             revert WhitelistMintUnauthorized();
         }
         if (msg.value != _amount * price) revert InsufficientPayment();
 
-        _setAux(msg.sender, minted + uint64(_amount));
         _mint(msg.sender, _amount);
     }
 
@@ -118,12 +117,11 @@ contract GasliteNFT is ERC721A, Ownable2Step {
     function publicMint(uint256 _amount) external payable {
         if (!live) revert MintNotLive();
         if (block.timestamp < whitelistClose) revert PublicMintNotLive();
-        uint64 minted = _getAux(msg.sender);
-        if (minted + _amount > maxPublicMint) revert MintExceeded();
+        uint256 minted = _numberMinted(msg.sender) + _amount;
+        if (minted > maxPublicMint) revert MintExceeded();
         if (_totalMinted() + _amount > MAX_SUPPLY) revert SupplyExceeded();
         if (msg.value != _amount * price) revert InsufficientPayment();
 
-        _setAux(msg.sender, minted + uint64(_amount));
         _mint(msg.sender, _amount);
     }
 
@@ -131,7 +129,7 @@ contract GasliteNFT is ERC721A, Ownable2Step {
     /// @dev Only the owner can call this function
     /// @param _price Price of each NFT
     /// @param _whitelistPrice Price of each whitelist NFT
-    function setPrices(uint256 _price, uint256 _whitelistPrice) external onlyOwner {
+    function setPrices(uint120 _price, uint120 _whitelistPrice) external onlyOwner {
         price = _price;
         whitelistPrice = _whitelistPrice;
     }
