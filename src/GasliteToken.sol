@@ -128,9 +128,9 @@ contract GasliteToken is Ownable {
         _approve(address(this), address(uniswapV2Router), type(uint256).max);
     }
 
-    /// @notice Starts trading by adding liquidity to Uniswap
+    /// @notice Adds liquidity to Uniswap
     /// @param tokenPerEth Amount of tokens to add to LP per ETH
-    function startTrading(uint256 tokenPerEth) external payable onlyOwner {
+    function fundLP(uint256 tokenPerEth) external payable onlyOwner {
         uint256 ethToLP = address(this).balance;
         uint256 tokenToLP = tokenPerEth * address(this).balance;
         uint256 tokenBalance = _balances[address(this)];
@@ -277,7 +277,7 @@ contract GasliteToken is Ownable {
         _allowedDuringPause[account] = allowed;
     }
 
-    /// @notice Sets trading status
+    /// @notice Enables trading
     function enableTrading() public onlyOwner {
         tradingStatus = TRADING_ENABLED;
     }

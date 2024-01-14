@@ -43,7 +43,7 @@ contract GasliteTokenTest is SoladyTest {
         pairAddress = IUniswapV2Factory(uniswapV2Router.factory()).getPair(address(token), WETH);
         assertEq(IERC20(pairAddress).totalSupply(), 0);
         uint256 tokenContractBalanceStart = token.balanceOf(address(token));
-        token.startTrading{value: valueToContract}(tokenPerEth);
+        token.fundLP{value: valueToContract}(tokenPerEth);
         uint256 tokenContractBalanceEnd = token.balanceOf(address(token));
         vm.stopPrank();
 
