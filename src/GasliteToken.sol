@@ -81,6 +81,15 @@ contract GasliteToken is Ownable {
     event Transfer(address indexed from, address indexed to, uint256 value);
     event Approval(address indexed owner, address indexed spender, uint256 value);
 
+    /// @notice Constructor
+    /// @param _name Name of the token
+    /// @param _symbol Symbol of the token
+    /// @param _totalSupply Total supply of the token
+    /// @param _lpTokenRecipient Address to receive LP tokens
+    /// @param _buyTotalFees Total fees to charge on buys (10 == 1%, 100 == 10%)
+    /// @param _sellTotalFees Total fees to charge on sells (10 == 1%, 100 == 10%)
+    /// @param _treasuryWallet Address to receive fees
+    /// @param _airdropper Address used to airdrop tokens
     constructor(
         string memory _name,
         string memory _symbol,
@@ -119,6 +128,8 @@ contract GasliteToken is Ownable {
         _approve(address(this), address(uniswapV2Router), type(uint256).max);
     }
 
+    /// @notice Starts trading by adding liquidity to Uniswap
+    /// @param tokenPerEth Amount of tokens to add to LP per ETH
     function startTrading(uint256 tokenPerEth) external payable onlyOwner {
         uint256 ethToLP = address(this).balance;
         uint256 tokenToLP = tokenPerEth * address(this).balance;
@@ -132,19 +143,34 @@ contract GasliteToken is Ownable {
         );
     }
 
+    /// @notice Gets balance of an address
+    /// @param account Address to check balance of
+    /// @return Balance of the address
     function balanceOf(address account) public view returns (uint256) {
         return _balances[account];
     }
 
+    /// @notice Gets allowance of an address
+    /// @param owner Address of the owner
+    /// @param spender Address of the spender
+    /// @return Allowance of the address
     function allowance(address owner, address spender) public view returns (uint256) {
         return _allowances[owner][spender];
     }
 
+    /// @notice Approves an address to spend tokens
+    /// @param spender Address of the spender
+    /// @param amount Amount to approve
+    /// @return True if successful
     function approve(address spender, uint256 amount) external returns (bool) {
         _approve(msg.sender, spender, amount);
         return true;
     }
 
+    /// @notice Internal approve
+    /// @param owner Address of the owner
+    /// @param spender Address of the spender
+    /// @param amount Amount to approve
     function _approve(address owner, address spender, uint256 amount) private {
         if (owner == address(0)) revert ZeroAddress();
         if (spender == address(0)) revert ZeroAddress();
@@ -153,11 +179,20 @@ contract GasliteToken is Ownable {
         emit Approval(owner, spender, amount);
     }
 
+    /// @notice Transfers tokens to an address
+    /// @param recipient Address of the recipient
+    /// @param amount Amount to transfer
+    /// @return True if successful
     function transfer(address recipient, uint256 amount) external returns (bool) {
         _transfer(msg.sender, recipient, amount);
         return true;
     }
 
+    /// @notice Transfers tokens from an address to another address
+    /// @param sender Address of the sender
+    /// @param recipient Address of the recipient
+    /// @param amount Amount to transfer
+    /// @return True if successful
     function transferFrom(address sender, address recipient, uint256 amount) external returns (bool) {
         uint256 currentAllowance = _allowances[sender][msg.sender];
         if (currentAllowance != type(uint256).max) {
@@ -172,6 +207,9 @@ contract GasliteToken is Ownable {
         return true;
     }
 
+    /// @notice Internal transfer
+    /// @param from Address of the sender
+    /// @param to Address of the recipient
     function _transfer(address from, address to, uint256 amount) private {
         if (from == address(0)) revert ZeroAddress();
         if (to == address(0)) revert ZeroAddress();
@@ -216,43 +254,65 @@ contract GasliteToken is Ownable {
         emit Transfer(from, to, amount);
     }
 
+    /// @notice Sets fees
+    /// @param _buyTotalFees Total fees to charge on buys (10 == 1%, 100 == 10%)
+    /// @param _sellTotalFees Total fees to charge on sells (10 == 1%, 100 == 10%)
     function setFees(uint8 _buyTotalFees, uint8 _sellTotalFees) external onlyOwner {
         if (_buyTotalFees > MAX_BUY_FEES || _sellTotalFees > MAX_SELL_FEES) revert FeesExceedMax();
         buyTotalFees = _buyTotalFees;
         sellTotalFees = _sellTotalFees;
     }
 
+    /// @notice Sets excluded from fees
+    /// @param account Address to set excluded from fees
+    /// @param excluded True if excluded from fees
     function setExcludedFromFees(address account, bool excluded) public onlyOwner {
         _isExcludedFromFees[account] = excluded;
     }
 
+    /// @notice Sets allowed during pause
+    /// @param account Address to set allowed during pause
+    /// @param allowed True if allowed during pause
     function setAllowedDuringPause(address account, bool allowed) public onlyOwner {
         _allowedDuringPause[account] = allowed;
     }
 
+    /// @notice Sets trading status
     function enableTrading() public onlyOwner {
         tradingStatus = TRADING_ENABLED;
     }
 
+    /// @notice Sets AMM pair
+    /// @param pair Address of the pair
+    /// @param value True if AMM pair
     function setAutomatedMarketMakerPair(address pair, bool value) external onlyOwner {
         if (pair == uniswapV2Pair) revert CannotRemoveV2Pair();
         automatedMarketMakerPairs[pair] = value;
     }
 
+    /// @notice Sets treasury wallet
+    /// @param newAddress Address of the new treasury wallet
     function updateTreasuryWallet(address newAddress) external onlyOwner {
         if (newAddress == address(0)) revert ZeroAddress();
         treasuryWallet = newAddress;
     }
 
+    /// @notice Gets if an address is excluded from fees
+    /// @param account Address to check
     function excludedFromFee(address account) public view returns (bool) {
         return _isExcludedFromFees[account];
     }
 
+    /// @notice Withdraw tokens from the contract
+    /// @param token Address of the token
+    /// @param to Address to withdraw to
     function withdrawToken(address token, address to) external onlyOwner {
         uint256 _contractBalance = IERC20(token).balanceOf(address(this));
         SafeERC20.safeTransfer(IERC20(token), to, _contractBalance);
     }
 
+    /// @notice Withdraw ETH from the contract
+    /// @param addr Address to withdraw to
     function withdrawETH(address addr) external onlyOwner {
         if (addr == address(0)) revert ZeroAddress();
 
