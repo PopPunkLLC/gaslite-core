@@ -5,7 +5,7 @@ libs = ["lib"]
 solc-version = "0.8.20"
 optimizer = true
 optimizer-runs = 999999
-gas_reports = ["GasliteDrop", "GasliteSplitter", "GasliteDrop1155"]
+gas_reports = ["GasliteDrop", "GasliteSplitter", "GasliteNFT", "GasliteDrop1155"]
 
 
 [rpc_endpoints]
