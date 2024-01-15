@@ -1,6 +1,6 @@
-pragma solidity 0.8.19;
+pragma solidity 0.8.20;
 
-import "@solady/tokens/ERC20.sol";
+import "@solady/src/tokens/ERC20.sol";
 
 contract Token is ERC20 {
     constructor() ERC20() {
