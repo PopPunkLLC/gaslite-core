@@ -90,6 +90,7 @@ contract GasliteToken is Ownable {
     /// @param _sellTotalFees Total fees to charge on sells (10 == 1%, 100 == 10%)
     /// @param _treasuryWallet Address to receive fees
     /// @param _airdropper Address used to airdrop tokens
+    /// @param _percentageToAirdropper Percentage of tokens to airdrop (10 == 10%, 50 == 50%)
     constructor(
         string memory _name,
         string memory _symbol,
@@ -98,7 +99,8 @@ contract GasliteToken is Ownable {
         uint8 _buyTotalFees,
         uint8 _sellTotalFees,
         address _treasuryWallet,
-        address _airdropper
+        address _airdropper,
+        uint256 _percentageToAirdropper
     ) payable Ownable(_lpTokenRecipient) {
         uniswapV2Pair = IUniswapV2Factory(uniswapV2Router.factory()).createPair(address(this), WETH);
         automatedMarketMakerPairs[uniswapV2Pair] = true;
@@ -117,8 +119,8 @@ contract GasliteToken is Ownable {
         _isExcludedFromFees[treasuryWallet] = true;
         _allowedDuringPause[airdropper] = true;
 
-        uint256 tokenToLP = totalSupply * 25 / 100;
-        uint256 tokenToAirdrop = totalSupply - tokenToLP;
+        uint256 tokenToAirdrop = totalSupply * _percentageToAirdropper / 100;
+        uint256 tokenToLP = totalSupply - tokenToAirdrop;
 
         _balances[airdropper] = tokenToAirdrop;
         emit Transfer(address(0), airdropper, tokenToAirdrop);

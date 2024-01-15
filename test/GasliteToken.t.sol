@@ -31,7 +31,7 @@ contract GasliteTokenTest is SoladyTest {
         vm.selectFork(mainnetFork);
         (bool transferToAdmin,) = admin.call{value: 500 ether}("");
         assertTrue(transferToAdmin);
-        token = new GasliteToken("GASLITE", "GAS", 525_600 ether, lpTokenRecipient, 20, 20, admin, airdropper);
+        token = new GasliteToken("GASLITE", "GAS", 525_600 ether, lpTokenRecipient, 20, 20, admin, airdropper, 50);
         vm.startPrank(admin);
         uint256 valueToContract = 206.1 ether;
         (bool transferToLPRecipient,) = lpTokenRecipient.call{value: valueToContract}("");
@@ -46,15 +46,12 @@ contract GasliteTokenTest is SoladyTest {
         token.fundLP{value: valueToContract}(tokenPerEth);
         uint256 tokenContractBalanceEnd = token.balanceOf(address(token));
         vm.stopPrank();
-
         vm.prank(airdropper);
-        token.transfer(admin, 300_000 ether);
-
+        token.transfer(admin, 262_800 ether);
         vm.startPrank(admin);
         token.transfer(address(0x5), 1);
         token.transfer(address(0x10), 1);
         vm.stopPrank();
-
         vm.prank(address(0x5));
         vm.expectRevert();
         token.transfer(address(0x6), 1);
@@ -80,10 +77,13 @@ contract GasliteTokenTest is SoladyTest {
             IERC20(pairAddress).balanceOf(lpTokenRecipient), (IERC20(pairAddress).totalSupply() - MINIMUM_LIQUIDITY)
         );
         assertEq(
-            address(token).balance, valueToContract - ((tokenContractBalanceStart - tokenContractBalanceEnd) / tokenPerEth)
+            address(token).balance,
+            valueToContract - ((tokenContractBalanceStart - tokenContractBalanceEnd) / tokenPerEth)
         );
         assertEq((tokenContractBalanceStart - tokenContractBalanceEnd), token.balanceOf(pairAddress));
-        assertEq(((tokenContractBalanceStart - tokenContractBalanceEnd) / tokenPerEth), IERC20(WETH).balanceOf(pairAddress));
+        assertEq(
+            ((tokenContractBalanceStart - tokenContractBalanceEnd) / tokenPerEth), IERC20(WETH).balanceOf(pairAddress)
+        );
     }
 
     function test_uniswapSellWithFee() public {
