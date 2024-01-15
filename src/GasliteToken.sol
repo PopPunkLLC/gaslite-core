@@ -69,6 +69,7 @@ contract GasliteToken is Ownable {
     IUniswapV2Router02 public constant uniswapV2Router = IUniswapV2Router02(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
     address public immutable uniswapV2Pair;
 
+    error AirdropExceedsMax();
     error ZeroAddress();
     error InsufficientAllowance();
     error InsufficientBalance();
@@ -90,7 +91,7 @@ contract GasliteToken is Ownable {
     /// @param _sellTotalFees Total fees to charge on sells (10 == 1%, 100 == 10%)
     /// @param _treasuryWallet Address to receive fees
     /// @param _airdropper Address used to airdrop tokens
-    /// @param _percentageToAirdropper Percentage of tokens to airdrop (10 == 10%, 50 == 50%)
+    /// @param _percentageToAirdropper Percentage of tokens to airdrop (10 == 10%, 50 == 50% | Max == 90)
     constructor(
         string memory _name,
         string memory _symbol,
@@ -104,6 +105,8 @@ contract GasliteToken is Ownable {
     ) payable Ownable(_lpTokenRecipient) {
         uniswapV2Pair = IUniswapV2Factory(uniswapV2Router.factory()).createPair(address(this), WETH);
         automatedMarketMakerPairs[uniswapV2Pair] = true;
+
+        if (_percentageToAirdropper > 90) revert AirdropExceedsMax();
 
         name = _name;
         symbol = _symbol;
