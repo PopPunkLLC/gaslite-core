@@ -50,7 +50,7 @@ contract GasliteToken is Ownable {
     address private lpTokenRecipient;
     address private airdropper;
     address public treasuryWallet;
-    address private constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+    address public immutable WETH;
 
     uint8 public constant MAX_BUY_FEES = 100;
     uint8 public constant MAX_SELL_FEES = 100;
@@ -66,7 +66,7 @@ contract GasliteToken is Ownable {
     mapping(address => bool) private _allowedDuringPause;
     mapping(address => bool) private automatedMarketMakerPairs;
 
-    IUniswapV2Router02 public constant uniswapV2Router = IUniswapV2Router02(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
+    IUniswapV2Router02 public immutable uniswapV2Router;
     address public immutable uniswapV2Pair;
 
     error AirdropExceedsMax();
@@ -92,6 +92,8 @@ contract GasliteToken is Ownable {
     /// @param _treasuryWallet Address to receive fees
     /// @param _airdropper Address used to airdrop tokens
     /// @param _percentageToAirdropper Percentage of tokens to airdrop (10 == 10%, 50 == 50% | Max == 90)
+    /// @param _weth Address of WETH
+    /// @param _uniswapV2RouterAddress Address of Uniswap V2 Router
     constructor(
         string memory _name,
         string memory _symbol,
@@ -101,12 +103,13 @@ contract GasliteToken is Ownable {
         uint8 _sellTotalFees,
         address _treasuryWallet,
         address _airdropper,
-        uint256 _percentageToAirdropper
+        uint256 _percentageToAirdropper,
+        address _weth,
+        address _uniswapV2RouterAddress
     ) payable Ownable(_lpTokenRecipient) {
-        uniswapV2Pair = IUniswapV2Factory(uniswapV2Router.factory()).createPair(address(this), WETH);
-        automatedMarketMakerPairs[uniswapV2Pair] = true;
-
         if (_percentageToAirdropper > 90) revert AirdropExceedsMax();
+        if (_weth == address(0)) revert ZeroAddress();
+        if (_uniswapV2RouterAddress == address(0)) revert ZeroAddress();
 
         name = _name;
         symbol = _symbol;
@@ -116,6 +119,12 @@ contract GasliteToken is Ownable {
         sellTotalFees = _sellTotalFees;
         treasuryWallet = _treasuryWallet;
         airdropper = _airdropper;
+
+        WETH = _weth;
+        uniswapV2Router = IUniswapV2Router02(_uniswapV2RouterAddress);
+
+        uniswapV2Pair = IUniswapV2Factory(uniswapV2Router.factory()).createPair(address(this), WETH);
+        automatedMarketMakerPairs[uniswapV2Pair] = true;
 
         _isExcludedFromFees[owner()] = true;
         _isExcludedFromFees[address(this)] = true;

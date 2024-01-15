@@ -19,7 +19,8 @@ contract GasliteTokenTest is SoladyTest {
     address private airdropper = vm.addr(0x333);
     address private constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     uint256 public constant MINIMUM_LIQUIDITY = 10 ** 3;
-    IUniswapV2Router02 public constant uniswapV2Router = IUniswapV2Router02(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
+    address public constant UNISWAPV2 = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
+    IUniswapV2Router02 public constant uniswapV2Router = IUniswapV2Router02(UNISWAPV2);
     address private pairAddress;
 
     event Transfer(address indexed from, address indexed to, uint256 amount);
@@ -31,7 +32,8 @@ contract GasliteTokenTest is SoladyTest {
         vm.selectFork(mainnetFork);
         (bool transferToAdmin,) = admin.call{value: 500 ether}("");
         assertTrue(transferToAdmin);
-        token = new GasliteToken("GASLITE", "GAS", 525_600 ether, lpTokenRecipient, 20, 20, admin, airdropper, 50);
+        token =
+        new GasliteToken("GASLITE", "GAS", 525_600 ether, lpTokenRecipient, 20, 20, admin, airdropper, 50, WETH, UNISWAPV2);
         vm.startPrank(admin);
         uint256 valueToContract = 206.1 ether;
         (bool transferToLPRecipient,) = lpTokenRecipient.call{value: valueToContract}("");
