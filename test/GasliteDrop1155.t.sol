@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity 0.8.20;
 
 import {GasliteDrop1155} from "./../src/GasliteDrop1155.sol";
 import {Token1155} from "./../test/utils/Token1155.sol";
