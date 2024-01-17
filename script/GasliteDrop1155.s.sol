@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity 0.8.20;
 
 import "./../src/GasliteDrop1155.sol";
 import "forge-std/Script.sol";
@@ -10,7 +10,7 @@ contract GasliteDrop1155Script is Script {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
 
         vm.startBroadcast(deployerPrivateKey);
-        bytes32 deploySalt = keccak256(abi.encodePacked("gaslitedrop1155"));
+        bytes32 deploySalt = 0x000000000000000000000000000000000000000000000000000009000210bbde;
         bytes memory gasliteDropCode = abi.encodePacked(type(GasliteDrop1155).creationCode);
 
         deploy(gasliteDropCode, deploySalt);

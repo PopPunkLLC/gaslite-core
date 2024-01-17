@@ -1,7 +1,7 @@
-pragma solidity 0.8.19;
+pragma solidity 0.8.20;
 
-import "@solady/tokens/ERC1155.sol";
-import "@solady/utils/LibString.sol";
+import "@solady/src/tokens/ERC1155.sol";
+import "@solady/src/utils/LibString.sol";
 
 contract Token1155 is ERC1155 {
     using LibString for uint256;
