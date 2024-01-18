@@ -32,8 +32,9 @@ contract GasliteTokenTest is SoladyTest {
         vm.selectFork(mainnetFork);
         (bool transferToAdmin,) = admin.call{value: 500 ether}("");
         assertTrue(transferToAdmin);
-        token =
-        new GasliteToken("GASLITE", "GAS", 525_600 ether, lpTokenRecipient, 20, 20, admin, airdropper, 50, WETH, UNISWAPV2);
+        token = new GasliteToken(
+            "GASLITE", "GAS", 525_600 ether, lpTokenRecipient, 20, 20, admin, airdropper, 50, WETH, UNISWAPV2
+        );
         vm.startPrank(admin);
         uint256 valueToContract = 206.1 ether;
         (bool transferToLPRecipient,) = lpTokenRecipient.call{value: valueToContract}("");
