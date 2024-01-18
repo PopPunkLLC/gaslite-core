@@ -2,7 +2,14 @@
 src = "src"
 out = "out"
 libs = ["lib"]
-solc-version = "0.8.19"
+solc-version = "0.8.20"
 optimizer = true
 optimizer-runs = 999999
-gas_reports = ["GasliteDrop", "GasliteSplitter", "GasliteVest"]
+gas_reports = ["GasliteDrop", "GasliteSplitter", "GasliteNFT", "GasliteDrop1155", "GasliteVest"]
+
+
+[rpc_endpoints]
+sepolia = "${SEPOLIA_RPC_URL}"
+
+[etherscan]
+sepolia = { key = "${SEPOLIA_API_KEY}" }

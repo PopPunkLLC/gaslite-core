@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity 0.8.20;
 
 import {GasliteVest} from "./../src/GasliteVest.sol";
 import {NFT} from "./../test/utils/NFT.sol";

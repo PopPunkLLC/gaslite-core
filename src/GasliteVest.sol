@@ -1,7 +1,8 @@
-pragma solidity 0.8.19;
+pragma solidity 0.8.20;
 
-import "@solady/auth/Ownable.sol";
-import "@solady/tokens/ERC20.sol";
+import "@solady/src/auth/Ownable.sol";
+import "@solady/src/tokens/ERC20.sol";
+import "@solady/src/tokens/ERC20.sol";
 
 // forgefmt: disable-start
 /**
