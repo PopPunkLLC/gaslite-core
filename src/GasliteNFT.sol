@@ -179,7 +179,12 @@ contract GasliteNFT is ERC721A, Ownable2Step {
             }
         }
 
-        if (msg.value != _amount * price) revert InsufficientPayment();
+        if (msg.value != _amount * price) {
+            assembly {
+                mstore(0x00, 0xcd1c8867) // revert InsufficientPayment();
+                revert(0x1c, 0x04)
+            }
+        }
 
         _mint(msg.sender, _amount);
     }

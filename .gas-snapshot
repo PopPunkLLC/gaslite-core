@@ -1,4 +1,4 @@
-GasliteNFTTest:test_publicMintInsufficientPayment() (gas: 62424)
+GasliteNFTTest:test_publicMintInsufficientPayment() (gas: 62394)
 GasliteNFTTest:test_publicMintMintExceeded() (gas: 142894)
 GasliteNFTTest:test_publicMintNotLive() (gas: 61362)
 GasliteNFTTest:test_publicMintPublicMintNotLive() (gas: 57582)
