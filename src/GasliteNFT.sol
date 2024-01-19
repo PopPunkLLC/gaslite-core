@@ -216,8 +216,19 @@ contract GasliteNFT is ERC721A, Ownable2Step {
     /// @param _whitelistOpen Timestamp of when the whitelist opens
     /// @param _whitelistClose Timestamp of when the whitelist closes
     function setWhitelistMintWindow(uint64 _whitelistOpen, uint64 _whitelistClose) external onlyOwner {
-        if (_whitelistOpen > _whitelistClose) revert InvalidWhitelistWindow();
-        if (_whitelistOpen == 0) revert InvalidWhitelistWindow();
+        if (_whitelistOpen > _whitelistClose) {
+            assembly {
+                mstore(0x00, 0x80784dd1) // revert InvalidWhitelistWindow();
+                revert(0x1c, 0x04)
+            }
+        }
+
+        if (_whitelistOpen == 0) {
+            assembly {
+                mstore(0x00, 0x80784dd1) // revert InvalidWhitelistWindow();
+                revert(0x1c, 0x04)
+            }
+        }
 
         whitelistOpen = _whitelistOpen;
         whitelistClose = _whitelistClose;
