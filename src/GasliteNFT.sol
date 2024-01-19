@@ -253,7 +253,12 @@ contract GasliteNFT is ERC721A, Ownable2Step {
     /// @notice Get the base URI
     /// @return Base URI of the NFT
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
-        if (!_exists(tokenId)) revert TokenDoesNotExist();
+        if (!_exists(tokenId)) {
+            assembly {
+                mstore(0x00, 0x7d3d8249) // revert TokenDoesNotExist();
+                revert(0x1c, 0x04)
+            }
+        }
 
         string memory baseURI = _baseURIString;
         return bytes(baseURI).length != 0 ? string(abi.encodePacked(baseURI, LibString.toString(tokenId))) : "";
