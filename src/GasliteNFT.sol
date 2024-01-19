@@ -262,7 +262,8 @@ contract GasliteNFT is ERC721A, Ownable2Step {
     /// @notice Withdraw the contract balance
     /// @dev Only the owner can call this function
     function withdraw() external onlyOwner {
-        (bool success,) = payable(msg.sender).call{value: address(this).balance}("");
-        require(success);
+        assembly {
+            if iszero(call(gas(), caller(), selfbalance(), 0, 0, 0, 0)) { revert(0, 0) }
+        }
     }
 }
