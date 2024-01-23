@@ -13,6 +13,7 @@ src
     ├─ GasliteToken -> Efficient base ERC20 token with UniswapV2 support
     ├─ examples
         ├─ NFTSplitter -> An example NFT contract that splits mint proceeds using GasliteSplitter
+        ├─ Claim -> An example benchmarking 3 ways to handle claims in a smart contract
 ```
 
 ### Build
