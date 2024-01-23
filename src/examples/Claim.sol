@@ -114,6 +114,8 @@ contract Claim {
     /// @param _amount amount of tokens to claim
     /// @param _signature signature of the claim
     function claimWithSignature(uint256 _amount, bytes memory _signature) external {
+        if (claimed[msg.sender]) revert AlreadyClaimed();
+
         bytes32 messageHash = keccak256(abi.encodePacked(msg.sender, _amount, address(this)));
         bytes32 prefixedHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", messageHash));
         address recoveredSigner = ECDSA.recover(prefixedHash, _signature);
