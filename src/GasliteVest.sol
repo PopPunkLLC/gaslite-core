@@ -2,7 +2,6 @@ pragma solidity 0.8.20;
 
 import "@solady/src/auth/Ownable.sol";
 import "@solady/src/tokens/ERC20.sol";
-import "@solady/src/tokens/ERC20.sol";
 
 // forgefmt: disable-start
 /**
@@ -37,7 +36,6 @@ import "@solady/src/tokens/ERC20.sol";
 /// @notice Turbo gas optimized token vesting
 /// @author Harrison (@PopPunkOnChain)
 /// @author Gaslite (@GasliteGG)
-
 contract GasliteVest is Ownable {
     uint256 public vestingId;
 
@@ -46,7 +44,6 @@ contract GasliteVest is Ownable {
         uint256 claimed;
         address token;
         address recipient;
-        address owner;
         uint32 start;
         uint32 end;
         uint32 lastClaim;
@@ -59,16 +56,17 @@ contract GasliteVest is Ownable {
     error InvalidTimestamp();
     error NotOwner();
 
-    event Created(
-        address indexed token, address indexed recipient, uint256 id, uint256 amount, uint32 start, uint32 end
-    );
-
-    event Cancelled(address indexed token, address indexed recipient, uint256 id, uint256 amount);
-
     constructor() {
         _initializeOwner(msg.sender);
     }
 
+    /// @notice Create a new vesting
+    /// @param token The token to vest
+    /// @param recipient The recipient of the vesting
+    /// @param amount The amount to vest
+    /// @param start The start of the vesting period
+    /// @param end The end of the vesting period
+    /// @return id The id of the vesting
     function create(address token, address recipient, uint256 amount, uint32 start, uint32 end)
         external
         returns (uint256)
@@ -86,7 +84,6 @@ contract GasliteVest is Ownable {
         Vesting storage vesting = vestings[id];
         vesting.token = token;
         vesting.recipient = recipient;
-        vesting.owner = msg.sender;
         vesting.amount = amount;
         vesting.start = start;
         vesting.end = end;
@@ -96,11 +93,11 @@ contract GasliteVest is Ownable {
             vestingId++;
         }
 
-        emit Created(token, recipient, id, amount, start, end);
-
         return id;
     }
 
+    /// @notice Claim vested tokens
+    /// @param id The id of the vesting
     function claim(uint256 id) external {
         Vesting storage vesting = vestings[id];
 
@@ -117,22 +114,24 @@ contract GasliteVest is Ownable {
         ERC20(vesting.token).transfer(vesting.recipient, amount);
     }
 
-    function cancel(uint256 id) external {
+    /// @notice Cancel a vesting
+    /// @param id The id of the vesting
+    function cancel(uint256 id) external onlyOwner {
         Vesting storage vesting = vestings[id];
-
-        if (msg.sender != vesting.owner) revert NotOwner();
 
         uint256 vested = vestedAmount(id);
 
-        ERC20(vesting.token).transfer(vesting.owner, vesting.amount - vested);
+        ERC20(vesting.token).transfer(owner(), vesting.amount - vested);
         if (vested > 0) {
             ERC20(vesting.token).transfer(vesting.recipient, vested);
         }
 
-        emit Cancelled(vesting.token, vesting.recipient, id, vesting.amount);
         delete vestings[id];
     }
 
+    /// @notice Get the amount vested
+    /// @param id The id of the vesting
+    /// @return amount The amount vested
     function vestedAmount(uint256 id) public view returns (uint256) {
         Vesting memory vesting = vestings[id];
 
@@ -145,24 +144,10 @@ contract GasliteVest is Ownable {
         return (vesting.amount * timeSinceLastClaim) / vestingPeriod;
     }
 
+    /// @notice Get the vesting
+    /// @param id The id of the vesting
+    /// @return vesting The vesting
     function getVesting(uint256 id) external view returns (Vesting memory) {
         return vestings[id];
-    }
-
-    function getVestingsByOwner(address owner) external view returns (Vesting[] memory) {
-        Vesting[] memory _vestings = new Vesting[](vestingId);
-
-        uint256 count;
-        for (uint256 i; i < vestingId;) {
-            if (vestings[i].owner == owner) {
-                _vestings[count] = vestings[i];
-                count++;
-            }
-            unchecked {
-                i++;
-            }
-        }
-
-        return _vestings;
     }
 }

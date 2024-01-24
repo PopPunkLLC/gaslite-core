@@ -35,7 +35,6 @@ contract GasliteVestTest is Test {
             uint256 _claimed,
             address _token,
             address _recipient,
-            address _owner,
             uint32 _start,
             uint32 _end,
             uint32 _lastClaim
@@ -45,7 +44,6 @@ contract GasliteVestTest is Test {
         assertEq(_claimed, 0);
         assertEq(_token, address(token));
         assertEq(_recipient, recipient);
-        assertEq(_owner, admin);
         assertEq(_start, 10);
         assertEq(_end, 20);
         assertEq(_lastClaim, 10);
@@ -66,7 +64,7 @@ contract GasliteVestTest is Test {
         assertEq(token.balanceOf(address(vest)), 50e18);
         assertEq(token.balanceOf(recipient), 50e18);
 
-        (, uint256 claimed,,,,,,) = vest.vestings(id);
+        (, uint256 claimed,,,,,) = vest.vestings(id);
         assertEq(claimed, 50e18);
     }
 
@@ -85,7 +83,7 @@ contract GasliteVestTest is Test {
         assertEq(token.balanceOf(address(vest)), 50e18);
         assertEq(token.balanceOf(recipient), 50e18);
 
-        (, uint256 claimed,,,,,,) = vest.vestings(id);
+        (, uint256 claimed,,,,,) = vest.vestings(id);
         assertEq(claimed, 50e18);
 
         vm.warp(16);
@@ -95,7 +93,7 @@ contract GasliteVestTest is Test {
         assertEq(token.balanceOf(address(vest)), 40e18);
         assertEq(token.balanceOf(recipient), 60e18);
 
-        (, claimed,,,,,,) = vest.vestings(id);
+        (, claimed,,,,,) = vest.vestings(id);
         assertEq(claimed, 60e18);
     }
 
@@ -114,7 +112,7 @@ contract GasliteVestTest is Test {
         assertEq(token.balanceOf(address(vest)), 0);
         assertEq(token.balanceOf(recipient), 100e18);
 
-        (, uint256 claimed,,,,,,) = vest.vestings(id);
+        (, uint256 claimed,,,,,) = vest.vestings(id);
         assertEq(claimed, 100e18);
     }
 
@@ -148,21 +146,5 @@ contract GasliteVestTest is Test {
         assertEq(token.balanceOf(address(vest)), 0);
         assertEq(token.balanceOf(recipient), 50e18);
         assertEq(token.balanceOf(admin), 50e18);
-    }
-
-    function test_getVestingsByOwner() external {
-        vm.startPrank(admin);
-        token.approve(address(vest), 100e18);
-
-        vest.create(address(token), recipient, 75e18, 10, 20);
-        vest.create(address(token), recipient, 25e18, 10, 20);
-
-        GasliteVest.Vesting[] memory vestings = vest.getVestingsByOwner(admin);
-
-        assertEq(vestings.length, 2);
-        assertEq(vestings[0].recipient, recipient);
-        assertEq(vestings[0].amount, 75e18);
-        assertEq(vestings[1].recipient, recipient);
-        assertEq(vestings[1].amount, 25e18);
     }
 }
