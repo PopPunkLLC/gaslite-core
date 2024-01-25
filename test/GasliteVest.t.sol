@@ -1,13 +1,11 @@
 pragma solidity 0.8.20;
 
 import {GasliteVest} from "./../src/GasliteVest.sol";
-import {NFT} from "./../test/utils/NFT.sol";
 import {Token} from "./../test/utils/Token.sol";
 import "forge-std/Test.sol";
 
 contract GasliteVestTest is Test {
     GasliteVest vest;
-    NFT nft;
     Token token;
 
     address admin = vm.addr(0x1);
