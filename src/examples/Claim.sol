@@ -3,7 +3,7 @@ pragma solidity 0.8.20;
 
 import "@solady/src/tokens/ERC20.sol";
 import "@solady/src/utils/MerkleProofLib.sol";
-import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "@solady/src/utils/ECDSA.sol";
 
 /**
  * All examples are for demonstration purposes only.
@@ -26,7 +26,7 @@ import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
  *     | Function Name                         | min             | avg     | median  | max     | # calls |
  *     | claimWithMapping                      | 35054           | 35054   | 35054   | 35054   | 1       |
  *     | claimWithRoot                         | 58901           | 58901   | 58901   | 58901   | 1       |
- *     | claimWithSignature                    | 63620           | 63620   | 63620   | 63620   | 1       |
+ *     | claimWithSignature                    | 63068           | 63068   | 63068   | 63068   | 1       |
  *     | setClaimMapping                       | 2226450         | 2226450 | 2226450 | 2226450 | 2       |
  *     | setClaimRoot                          | 22358           | 22358   | 22358   | 22358   | 2       |
  *
@@ -113,12 +113,12 @@ contract Claim {
     /// @notice Claim tokens using a signature
     /// @param _amount amount of tokens to claim
     /// @param _signature signature of the claim
-    function claimWithSignature(uint256 _amount, bytes memory _signature) external {
+    function claimWithSignature(uint256 _amount, bytes calldata _signature) external {
         if (claimed[msg.sender]) revert AlreadyClaimed();
 
         bytes32 messageHash = keccak256(abi.encodePacked(msg.sender, _amount, address(this)));
-        bytes32 prefixedHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", messageHash));
-        address recoveredSigner = ECDSA.recover(prefixedHash, _signature);
+        bytes32 prefixedHash = ECDSA.toEthSignedMessageHash(messageHash);
+        address recoveredSigner = ECDSA.recoverCalldata(prefixedHash, _signature);
 
         if (recoveredSigner != signer) revert NothingToClaim();
 
