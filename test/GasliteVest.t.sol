@@ -145,4 +145,30 @@ contract GasliteVestTest is Test {
         assertEq(token.balanceOf(recipient), 50e18);
         assertEq(token.balanceOf(admin), 50e18);
     }
+
+    function test_cancelClaimedAndMoreVested() external {
+        vm.startPrank(admin);
+        token.approve(address(vest), 100e18);
+
+        uint256 id = vest.create(address(token), recipient, 100e18, 10, 20);
+
+        assertEq(token.balanceOf(address(vest)), 100e18);
+
+        vm.warp(15);
+
+        vest.claim(id);
+
+        assertEq(token.balanceOf(address(vest)), 50e18);
+
+        vm.warp(17);
+
+        uint256 vestedAmount = vest.vestedAmount(id);
+        assertEq(vestedAmount, 20e18);
+
+        vest.cancel(id);
+
+        assertEq(token.balanceOf(address(vest)), 0);
+        assertEq(token.balanceOf(recipient), 70e18);
+        assertEq(token.balanceOf(admin), 30e18);
+    }
 }

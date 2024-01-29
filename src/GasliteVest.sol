@@ -37,7 +37,7 @@ import "@solady/src/tokens/ERC20.sol";
 /// @author Harrison (@PopPunkOnChain)
 /// @author Gaslite (@GasliteGG)
 contract GasliteVest is Ownable {
-    uint256 public vestingId;
+    uint256 public nextVestingId;
 
     struct Vesting {
         uint256 amount;
@@ -66,10 +66,10 @@ contract GasliteVest is Ownable {
     /// @param amount The amount to vest
     /// @param start The start of the vesting period
     /// @param end The end of the vesting period
-    /// @return id The id of the vesting
+    /// @return vestingId The id of the vesting
     function create(address token, address recipient, uint256 amount, uint32 start, uint32 end)
         external
-        returns (uint256)
+        returns (uint256 vestingId)
     {
         if (token == address(0)) revert InvalidAddress();
         if (recipient == address(0)) revert InvalidAddress();
@@ -77,11 +77,13 @@ contract GasliteVest is Ownable {
         if (start < block.timestamp) revert InvalidTimestamp();
         if (end <= start) revert InvalidTimestamp();
 
-        ERC20(token).transferFrom(msg.sender, address(this), amount);
+        vestingId = nextVestingId;
 
-        uint256 id = vestingId;
+        unchecked {
+            ++nextVestingId;
+        }
 
-        Vesting storage vesting = vestings[id];
+        Vesting storage vesting = vestings[vestingId];
         vesting.token = token;
         vesting.recipient = recipient;
         vesting.amount = amount;
@@ -89,39 +91,33 @@ contract GasliteVest is Ownable {
         vesting.end = end;
         vesting.lastClaim = start;
 
-        unchecked {
-            vestingId++;
-        }
-
-        return id;
+        ERC20(token).transferFrom(msg.sender, address(this), amount);
     }
 
     /// @notice Claim vested tokens
     /// @param id The id of the vesting
     function claim(uint256 id) external {
-        Vesting storage vesting = vestings[id];
+        (Vesting storage vesting, uint256 vested) = _vestedAmount(id);
 
-        uint256 amount = vestedAmount(id);
-
-        if (amount == 0) return;
+        if (vested == 0) return;
 
         vesting.lastClaim = uint32(block.timestamp);
 
         unchecked {
-            vesting.claimed += amount;
+            vesting.claimed += vested;
         }
 
-        ERC20(vesting.token).transfer(vesting.recipient, amount);
+        ERC20(vesting.token).transfer(vesting.recipient, vested);
     }
 
     /// @notice Cancel a vesting
     /// @param id The id of the vesting
     function cancel(uint256 id) external onlyOwner {
-        Vesting storage vesting = vestings[id];
+        (Vesting storage vesting, uint256 vested) = _vestedAmount(id);
 
-        uint256 vested = vestedAmount(id);
+        uint256 claimed = vesting.claimed;
 
-        ERC20(vesting.token).transfer(owner(), vesting.amount - vested);
+        ERC20(vesting.token).transfer(owner(), vesting.amount - claimed - vested);
         if (vested > 0) {
             ERC20(vesting.token).transfer(vesting.recipient, vested);
         }
@@ -131,17 +127,9 @@ contract GasliteVest is Ownable {
 
     /// @notice Get the amount vested
     /// @param id The id of the vesting
-    /// @return amount The amount vested
-    function vestedAmount(uint256 id) public view returns (uint256) {
-        Vesting memory vesting = vestings[id];
-
-        if (block.timestamp < vesting.start) return 0;
-        if (block.timestamp >= vesting.end) return vesting.amount - vesting.claimed;
-
-        uint256 timeSinceLastClaim = block.timestamp - vesting.lastClaim;
-        uint256 vestingPeriod = vesting.end - vesting.start;
-
-        return (vesting.amount * timeSinceLastClaim) / vestingPeriod;
+    /// @return vestedAmount amount The amount vested
+    function vestedAmount(uint256 id) external view returns (uint256 vestedAmount) {
+        (, vestedAmount) = _vestedAmount(id);
     }
 
     /// @notice Get the vesting
@@ -149,5 +137,25 @@ contract GasliteVest is Ownable {
     /// @return vesting The vesting
     function getVesting(uint256 id) external view returns (Vesting memory) {
         return vestings[id];
+    }
+
+    /// @notice Internal function to get the vested amount
+    /// @param id The id of the vesting
+    /// @return vesting The vesting
+    /// @return vestedAmount The amount vested
+    function _vestedAmount(uint256 id) internal view returns (Vesting storage vesting, uint256 vestedAmount) {
+        vesting = vestings[id];
+
+        uint256 vestingStart = vesting.start;
+        if (block.timestamp < vestingStart) return (vesting, 0);
+
+        uint256 vestingEnd = vesting.end;
+        uint256 vestingAmount = vesting.amount;
+        uint256 vestingClaimed = vesting.claimed;
+        if (block.timestamp >= vestingEnd) return (vesting, (vestingAmount - vestingClaimed));
+
+        uint256 timeSinceLastClaim = block.timestamp - vesting.lastClaim;
+        uint256 vestingPeriod = vestingEnd - vestingStart;
+        vestedAmount = (vestingAmount * timeSinceLastClaim) / vestingPeriod;
     }
 }
