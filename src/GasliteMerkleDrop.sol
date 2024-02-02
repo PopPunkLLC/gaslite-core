@@ -47,6 +47,7 @@ contract GasliteMerkleDrop is Ownable {
     error ZeroAddress();
     error NothingToClaim();
     error NotActive();
+    error InsufficientBalance();
 
     /// @param _token The address of the token to be distributed
     /// @param _root The merkle root of the distribution
@@ -61,6 +62,7 @@ contract GasliteMerkleDrop is Ownable {
     /// @param _proof The merkle proof
     /// @param _amount The amount of tokens to claim
     function claim(bytes32[] calldata _proof, uint256 _amount) external {
+        if (ERC20(token).balanceOf(address(this)) < _amount) revert InsufficientBalance();
         if (!active) revert NotActive();
         if (claimed[msg.sender]) revert NothingToClaim();
 
@@ -80,5 +82,10 @@ contract GasliteMerkleDrop is Ownable {
     /// @notice Toggle the active state
     function toggleActive() external onlyOwner {
         active = !active;
+    }
+
+    /// @notice Withdraw any remaining tokens
+    function withdraw() external onlyOwner {
+        ERC20(token).transfer(owner(), ERC20(token).balanceOf(address(this)));
     }
 }

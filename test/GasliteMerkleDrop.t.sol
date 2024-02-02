@@ -43,6 +43,15 @@ contract GasliteMerkleDropTest is Test {
         drop.claim(proof, amount);
     }
 
+    function test_claimInsufficientBalance() external {
+        vm.prank(owner);
+        drop.withdraw();
+        bytes32[] memory proof = merkle.getProof(data, 51);
+        vm.prank(recipients[50]);
+        vm.expectRevert(GasliteMerkleDrop.InsufficientBalance.selector);
+        drop.claim(proof, amount);
+    }
+
     function test_updateRoot() external {
         bytes32 newRoot = bytes32(keccak256(abi.encodePacked("newRoot")));
         vm.prank(owner);
@@ -55,5 +64,11 @@ contract GasliteMerkleDropTest is Test {
         vm.prank(owner);
         drop.toggleActive();
         assertEq(drop.active(), !active);
+    }
+
+    function test_withdraw() external {
+        vm.prank(owner);
+        drop.withdraw();
+        assertEq(token.balanceOf(address(drop)), 0);
     }
 }
