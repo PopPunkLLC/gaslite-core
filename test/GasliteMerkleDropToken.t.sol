@@ -1,12 +1,12 @@
 pragma solidity 0.8.20;
 
 import "forge-std/Test.sol";
-import {GasliteMerkleDrop} from "./../src/GasliteMerkleDrop.sol";
+import {GasliteMerkleDropToken} from "./../src/GasliteMerkleDropToken.sol";
 import {Token} from "./../test/utils/Token.sol";
 import {Merkle} from "@murky/Merkle.sol";
 
-contract GasliteMerkleDropTest is Test {
-    GasliteMerkleDrop drop;
+contract GasliteMerkleDropTokenTest is Test {
+    GasliteMerkleDropToken drop;
     Token token;
 
     Merkle merkle;
@@ -31,7 +31,7 @@ contract GasliteMerkleDropTest is Test {
         }
         root = merkle.getRoot(data);
         vm.startPrank(owner);
-        drop = new GasliteMerkleDrop(address(token), root);
+        drop = new GasliteMerkleDropToken(address(token), root);
         drop.toggleActive();
         vm.stopPrank();
         token.transfer(address(drop), 1000e18);
@@ -48,7 +48,7 @@ contract GasliteMerkleDropTest is Test {
         drop.withdraw();
         bytes32[] memory proof = merkle.getProof(data, 51);
         vm.prank(recipients[50]);
-        vm.expectRevert(GasliteMerkleDrop.InsufficientBalance.selector);
+        vm.expectRevert(GasliteMerkleDropToken.InsufficientBalance.selector);
         drop.claim(proof, amount);
     }
 

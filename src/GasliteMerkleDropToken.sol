@@ -33,11 +33,11 @@ import "@solady/src/tokens/ERC20.sol";
 import "@solady/src/auth/Ownable.sol";
 import "@solady/src/utils/MerkleProofLib.sol";
 
-/// @title GasliteMerkleDrop
+/// @title GasliteMerkleDropToken
 /// @notice Turbo gas optimized ERC20 merkle drop contract
 /// @author Harrison (@PopPunkOnChain)
 /// @author Gaslite (@GasliteGG)
-contract GasliteMerkleDrop is Ownable {
+contract GasliteMerkleDropToken is Ownable {
     address public immutable token;
     bytes32 public root;
     bool public active = false;
