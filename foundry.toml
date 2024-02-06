@@ -5,11 +5,13 @@ libs = ["lib"]
 solc-version = "0.8.20"
 optimizer = true
 optimizer-runs = 999999
-gas_reports = ["GasliteDrop", "GasliteSplitter", "GasliteNFT", "GasliteDrop1155", "Claim", "GasliteVest"]
+gas_reports = ["GasliteDrop", "GasliteSplitter", "GasliteNFT", "GasliteDrop1155", "Claim", "GasliteVest", "GasliteMerkleDropNative", "GasliteMerkleDropToken"]
 
 
 [rpc_endpoints]
 sepolia = "${SEPOLIA_RPC_URL}"
+base-sepolia = "${BASE_SEPOLIA_RPC_URL}"
 
 [etherscan]
 sepolia = { key = "${SEPOLIA_API_KEY}" }
+base-sepolia = { key = "${BASE_SEPOLIA_API_KEY}" }
