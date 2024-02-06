@@ -55,7 +55,7 @@ contract GasliteMerkleDropNative is Ownable {
     /// @notice Claim your native tokens
     /// @param _proof The merkle proof
     /// @param _amount The amount of native tokens to claim
-    function claim(bytes32[] calldata _proof, uint256 _amount) external {
+    function claim(bytes32[] calldata _proof, uint256 _amount) external payable {
         if (address(this).balance < _amount) revert InsufficientBalance();
         if (!active) revert NotActive();
         if (claimed[msg.sender]) revert NothingToClaim();
