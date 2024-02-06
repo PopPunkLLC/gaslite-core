@@ -12,6 +12,8 @@ src
     ├─ GasliteNFT -> Efficient NFT contract with whitelist support
     ├─ GasliteToken -> Efficient base ERC20 token with UniswapV2 support
     ├─ GasliteVest -> Efficient bare bones linear continuous vesting contract for ERC20 tokens
+    ├─ GasliteMerkleDN -> Efficient base contract for Merkle "Airdrops" of native tokens
+    ├─ GasliteMerkleDT -> Efficient base contract for Merkle "Airdrops" of ERC20 tokens
     ├─ examples
         ├─ NFTSplitter -> An example NFT contract that splits mint proceeds using GasliteSplitter
         ├─ Claim -> An example benchmarking 3 ways to handle claims in a smart contract
