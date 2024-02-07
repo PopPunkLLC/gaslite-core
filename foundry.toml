@@ -6,6 +6,7 @@ solc-version = "0.8.20"
 optimizer = true
 optimizer-runs = 999999
 gas_reports = ["GasliteDrop", "GasliteSplitter", "GasliteNFT", "GasliteDrop1155", "Claim", "GasliteVest", "GasliteMerkleDN", "GasliteMerkleDT"]
+fs_permissions = [{ access = "read", path = "./"}]
 
 
 [rpc_endpoints]
