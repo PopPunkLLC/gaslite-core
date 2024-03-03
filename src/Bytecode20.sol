@@ -1,6 +1,38 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+// forgefmt: disable-start
+/**
+ *                                                           bbbbbbbb                                         dddddddd
+ *                                                           b::::::b                                         d::::::d
+ *                                                           b::::::b                                         d::::::d
+ *                                                           b::::::b                                         d::::::d
+ *                                                            b:::::b                                         d:::::d
+ *    ggggggggg   ggggg aaaaaaaaaaaaa      ssssssssss         b:::::bbbbbbbbb      aaaaaaaaaaaaa      ddddddddd:::::d
+ *   g:::::::::ggg::::g a::::::::::::a   ss::::::::::s        b::::::::::::::bb    a::::::::::::a   dd::::::::::::::d
+ *  g:::::::::::::::::g aaaaaaaaa:::::ass:::::::::::::s       b::::::::::::::::b   aaaaaaaaa:::::a d::::::::::::::::d
+ * g::::::ggggg::::::gg          a::::as::::::ssss:::::s      b:::::bbbbb:::::::b           a::::ad:::::::ddddd:::::d
+ * g:::::g     g:::::g    aaaaaaa:::::a s:::::s  ssssss       b:::::b    b::::::b    aaaaaaa:::::ad::::::d    d:::::d
+ * g:::::g     g:::::g  aa::::::::::::a   s::::::s            b:::::b     b:::::b  aa::::::::::::ad:::::d     d:::::d
+ * g:::::g     g:::::g a::::aaaa::::::a      s::::::s         b:::::b     b:::::b a::::aaaa::::::ad:::::d     d:::::d
+ * g::::::g    g:::::ga::::a    a:::::assssss   s:::::s       b:::::b     b:::::ba::::a    a:::::ad:::::d     d:::::d
+ * g:::::::ggggg:::::ga::::a    a:::::as:::::ssss::::::s      b:::::bbbbbb::::::ba::::a    a:::::ad::::::ddddd::::::dd
+ *  g::::::::::::::::ga:::::aaaa::::::as::::::::::::::s       b::::::::::::::::b a:::::aaaa::::::a d:::::::::::::::::d
+ *   gg::::::::::::::g a::::::::::aa:::as:::::::::::ss        b:::::::::::::::b   a::::::::::aa:::a d:::::::::ddd::::d
+ *     gggggggg::::::g  aaaaaaaaaa  aaaa sssssssssss          bbbbbbbbbbbbbbbb     aaaaaaaaaa  aaaa  ddddddddd   ddddd
+ *             g:::::g
+ * gggggg      g:::::g
+ * g:::::gg   gg:::::g
+ *  g::::::ggg:::::::g
+ *   gg:::::::::::::g
+ *     ggg::::::ggg
+ *        gggggg
+ */
+// forgefmt: disable-end
+
+/// @title Bytecode20
+/// @notice Turbo gas optimized ERC20 written in EVM bytecode
+/// @author Thomas (@0xjustadev)
 contract Bytecode20 {
     // 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef
     event Transfer(address indexed _from, address indexed _to, uint256 _value);
