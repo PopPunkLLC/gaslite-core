@@ -44,7 +44,7 @@ contract KingOfTheFrameTest is Test {
         assertEq(topThief, userOne);
         assertEq(score, 89);
         vm.stopPrank();
-        
+
         vm.startPrank(userOne);
         game.setLive();
         vm.expectRevert(KingOfTheFrame.NotLive.selector);
