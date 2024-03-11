@@ -37,7 +37,14 @@ import {Ownable} from "@solady/src/auth/Ownable.sol";
 /// @author Harrison (@PopPunkOnChain)
 /// @author Gaslite (@GasliteGG)
 contract GaslitePoints is Ownable {
+    /// @dev Thrown when the amount of points being used exceeds the user's balance.
+    error PointsBalanceInsufficient();
+
+    event PointsStaked(address indexed user, uint256 amount);
+    event PointsUnstaked(address indexed user, uint256 amount);
+
     mapping(address => uint256) public points;
+    mapping(address => uint256) public stakedPoints;
 
     constructor() {
         _initializeOwner(msg.sender);
@@ -62,5 +69,35 @@ contract GaslitePoints is Ownable {
     /// @return The points balance of the user
     function getPoints(address _user) public view returns (uint256) {
         return points[_user];
+    }
+
+    /// @notice Stake's the caller's points and emits a `PointsStaked` event
+    /// @param _amount The amount of points to stake
+    function stakePoints(uint256 _amount) public {
+        uint256 userPoints = points[msg.sender];
+        if (userPoints < _amount) {
+            revert PointsBalanceInsufficient();
+        }
+        unchecked {
+            points[msg.sender] = userPoints - _amount;
+        }
+        stakedPoints[msg.sender] += _amount;
+
+        emit PointsStaked(msg.sender, _amount);
+    }
+
+    /// @notice Unstake's the caller's points and emits a `PointsUnstaked` event
+    /// @param _amount The amount of points to unstake
+    function unstakePoints(uint256 _amount) public {
+        uint256 userStakedPoints = stakedPoints[msg.sender];
+        if (userStakedPoints < _amount) {
+            revert PointsBalanceInsufficient();
+        }
+        unchecked {
+            stakedPoints[msg.sender] = userStakedPoints - _amount;
+        }
+        points[msg.sender] += _amount;
+
+        emit PointsUnstaked(msg.sender, _amount);
     }
 }
