@@ -21,4 +21,21 @@ contract GaslitePointsTest is Test {
         gaslitePoints.removePoints(user, 50);
         assertEq(gaslitePoints.points(user), 50);
     }
+
+    function test_stakingPoints() public {
+        gaslitePoints.addPoints(user, 100);
+        vm.prank(user);
+        gaslitePoints.stakePoints(50);
+        assertEq(gaslitePoints.points(user), 50);
+        assertEq(gaslitePoints.stakedPoints(user), 50);
+    }
+
+    function test_unstakingPoints() public {
+        gaslitePoints.addPoints(user, 100);
+        vm.startPrank(user);
+        gaslitePoints.stakePoints(50);
+        gaslitePoints.unstakePoints(50);
+        assertEq(gaslitePoints.points(user), 100);
+        assertEq(gaslitePoints.stakedPoints(user), 0);
+    }
 }
