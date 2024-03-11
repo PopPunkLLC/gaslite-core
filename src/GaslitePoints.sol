@@ -64,13 +64,6 @@ contract GaslitePoints is Ownable {
         points[_user] -= _amount;
     }
 
-    /// @notice Get the points balance of a user
-    /// @param _user The user to get the points balance of
-    /// @return The points balance of the user
-    function getPoints(address _user) public view returns (uint256) {
-        return points[_user];
-    }
-
     /// @notice Stake's the caller's points and emits a `PointsStaked` event
     /// @param _amount The amount of points to stake
     function stakePoints(uint256 _amount) public {
