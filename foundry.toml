@@ -10,11 +10,6 @@ gas_reports = ["GasliteDrop", "GasliteSplitter", "GasliteNFT", "GasliteDrop1155"
 
 [rpc_endpoints]
 sepolia = "${SEPOLIA_RPC_URL}"
-base-sepolia = "${BASE_SEPOLIA_RPC_URL}"
-base = "${BASE_RPC_URL}"
-blast = "${BLAST_RPC_URL}"
 
 [etherscan]
 sepolia = { key = "${SEPOLIA_API_KEY}" }
-base-sepolia = { key = "${BASE_SEPOLIA_API_KEY}" }
-base = { key = "${BASE_API_KEY}" }
