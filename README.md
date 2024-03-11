@@ -15,6 +15,7 @@ src
     ├─ GasliteMerkleDN -> Efficient base contract for Merkle "Airdrops" of native tokens
     ├─ GasliteMerkleDT -> Efficient base contract for Merkle "Airdrops" of ERC20 tokens
     ├─ Bytecode20 -> Efficient ERC20 contract written in EVM bytecode
+    ├─ GaslitePoints -> Efficient base contract for points & points staking
     ├─ examples
         ├─ NFTSplitter -> An example NFT contract that splits mint proceeds using GasliteSplitter
         ├─ Claim -> An example benchmarking 3 ways to handle claims in a smart contract
